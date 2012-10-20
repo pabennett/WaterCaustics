@@ -1,0 +1,8 @@
+*.o
+*.so
+*.dll
+*.pyc
+*.spyderproject
+dist
+build
+misc
