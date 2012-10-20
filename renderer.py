@@ -63,7 +63,7 @@ class Renderer():
             
         self.mMainShader = ShaderProgram.open('shaders/caustics.shader')
 
-        self.mBGTextureHandle = pyglet.image.load('images/sand.png').get_texture()                                  
+        self.mBGTextureHandle = pyglet.image.load('images/tiles.png').get_texture()                                  
                                                         
                                                         
         self.mEnvTextureHandle = pyglet.image.load('images/lightmap.png').get_texture()               
@@ -82,6 +82,7 @@ class Renderer():
         self.mWaterDepth = 1.0
         self.mShowWaveFunc = False
         self.mShowBumpMap = False
+        self.mEnableRefraction = False
         
         self.mWaterDepthHandle = glGetUniformLocation(self.mMainShader.id, "depth")
         self.mWaveSizeHandle = glGetUniformLocation(self.mMainShader.id, "uWaveSize")
@@ -90,6 +91,7 @@ class Renderer():
         self.mLightPosHandle = glGetUniformLocation(self.mMainShader.id, "uLightPos")
         self.mShowWaveFuncHandle = glGetUniformLocation(self.mMainShader.id, "uShowWaveFunc")
         self.mShowBumpMapHandle = glGetUniformLocation(self.mMainShader.id, "uShowBumpMap")
+        self.mEnableRefractionHandle = glGetUniformLocation(self.mMainShader.id, "uEnableRefraction")
         
         # Animation
         self.mOffsetHandle = glGetUniformLocation(self.mMainShader.id, "offset")
@@ -145,6 +147,7 @@ class Renderer():
         glUniform1f(self.mCausticBrightnessHandle, self.mCausticBrightness)
         glUniform1f(self.mShowWaveFuncHandle, self.mShowWaveFunc)
         glUniform1f(self.mShowBumpMapHandle, self.mShowBumpMap)
+        glUniform1f(self.mEnableRefractionHandle, self.mEnableRefraction)
         
         glUniform2fv(self.mLightPosHandle, 1,(GLfloat*2)(self.mLightPos[0], self.mLightPos[1]))
 
@@ -190,6 +193,8 @@ class Renderer():
             self.mShowBumpMap = False
         if symbol == key.NUM_1:
             self.mOffsetTimerEnabled = not self.mOffsetTimerEnabled   
+        if symbol == key.NUM_4:
+            self.mEnableRefraction = not self.mEnableRefraction
         # Caustic brightness control
         if symbol == key.J:
             self.mCausticBrightness += 0.1

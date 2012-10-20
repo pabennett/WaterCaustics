@@ -26,6 +26,7 @@ uniform float uFactor;
 uniform float uCausticBrightness;
 uniform float uShowWaveFunc;
 uniform float uShowBumpMap;
+uniform float uEnableRefraction;
 uniform vec2 uLightPos;
 
 uniform vec2 offset;
@@ -144,29 +145,6 @@ void main()
     float D = bump.w;
     vec2 dxdy = bump.xy;
     
-    // Diffraction 
-    float rIndex = 2.0;
-    float xDiff = (sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize * 2.0, texCoord.y * kPixStepSize, Timer)
-                - sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize, Timer)).x;
-                
-    float yDiff = (sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize * 2.0, Timer)
-                - sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize, Timer)).y;
-
-                
-    yDiff *= 0.2;
-    xDiff *= 0.2;    
-                
-    float xAngle = atan(xDiff);
-    float xRefraction = asin(sin(xAngle) / rIndex);
-    float xDisplace = tan(xRefraction) * xDiff;
-
-    float yAngle = atan(yDiff);
-    float yRefraction = asin(sin(yAngle) / rIndex);
-    float yDisplace = tan(yRefraction) * yDiff;
-    
-    xDisplace *= 0.25;
-    yDisplace *= 0.25;
-
     // Caustics
     vec3 intercept = line_plane_intercept(  vertPos.xyz,
                                             vec3(dxdy, 1.0), 
@@ -178,24 +156,53 @@ void main()
     vec4 colour;
         
     // Apply Refraction
-    if (xDiff < 0.0) {
-      if (yDiff < 0.0) {
-        colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) - xDisplace , (texCoord.y * 4.0) - yDisplace));
-      }
-      else
-      {
-        colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) - xDisplace , (texCoord.y * 4.0) + yDisplace));
-      }
+    if (uEnableRefraction == 1.0) {
+    // Diffraction 
+        float rIndex = 2.0;
+        float xDiff = (sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize * 2.0, texCoord.y * kPixStepSize, Timer)
+                    - sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize, Timer)).x;
+                    
+        float yDiff = (sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize * 2.0, Timer)
+                    - sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize, Timer)).y;
+
+                    
+        yDiff *= 0.2;
+        xDiff *= 0.2;    
+                    
+        float xAngle = atan(xDiff);
+        float xRefraction = asin(sin(xAngle) / rIndex);
+        float xDisplace = tan(xRefraction) * xDiff;
+
+        float yAngle = atan(yDiff);
+        float yRefraction = asin(sin(yAngle) / rIndex);
+        float yDisplace = tan(yRefraction) * yDiff;
+        
+        xDisplace *= 0.25;
+        yDisplace *= 0.25;
+        
+        if (xDiff < 0.0) {
+          if (yDiff < 0.0) {
+            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) - xDisplace , (texCoord.y * 4.0) - yDisplace));
+          }
+          else
+          {
+            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) - xDisplace , (texCoord.y * 4.0) + yDisplace));
+          }
+        }
+        else
+        {
+          if (yDiff < 0.0){
+            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) + xDisplace , (texCoord.y * 4.0)- yDisplace));
+          }
+          else
+          {
+            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) + xDisplace , (texCoord.y * 4.0) + yDisplace));
+          }
+        }
     }
     else
     {
-      if (yDiff < 0.0){
-        colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) + xDisplace , (texCoord.y * 4.0)- yDisplace));
-      }
-      else
-      {
-        colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) + xDisplace , (texCoord.y * 4.0) + yDisplace));
-      }
+        colour = texture2D(bgTexture, vec2(texCoord.x * 4.0, texCoord.y * 4.0));
     }
     
     // Apply caustics & positional light
