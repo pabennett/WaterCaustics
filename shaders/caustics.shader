@@ -163,6 +163,9 @@ void main()
     float yAngle = atan(yDiff);
     float yRefraction = asin(sin(yAngle) / rIndex);
     float yDisplace = tan(yRefraction) * yDiff;
+    
+    xDisplace *= 0.25;
+    yDisplace *= 0.25;
 
     // Caustics
     vec3 intercept = line_plane_intercept(  vertPos.xyz,
@@ -198,6 +201,7 @@ void main()
     // Apply caustics & positional light
     colour += 0.25*(1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x));
     colour += ((1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x))) * uCausticBrightness * texture2D(texture, intercept.xy * depth);
+    colour *= 0.7;
     
     if(uShowWaveFunc == 1.0){
         colour = jet(bump.a);
