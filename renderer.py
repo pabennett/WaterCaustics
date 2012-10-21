@@ -219,7 +219,15 @@ class Renderer():
         self.mTimerRewind = False
         self.mTimerStep = 0.004
         self.mCausticBrightness = 1.0;    
-        self.mLightPos = [0.5, 0.5]                
+        self.mLightPos = [0.5, 0.5]       
+    def loadShaders(self):
+        """ 
+        Load the shaders
+        Allow hotloading of shaders while the program is running
+        """
+        self.mMainShader = ShaderProgram.open('shaders/caustics.shader')
+        self.mRippleShader = ShaderProgram.open('shaders/ripples.shader')
+        self.mCopyShader = ShaderProgram.open('shaders/passthru.shader')
     def draw(self):          
         """ Main draw loop """
         
@@ -490,6 +498,8 @@ class Renderer():
             self.mWaveFactor += 0.5
         if symbol == key.Y:
             self.mWaveFactor -= 0.5
+        if symbol == key.P:
+            self.loadShaders()
         
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """ Handle mouse drag events """
