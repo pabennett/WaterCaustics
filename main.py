@@ -21,7 +21,9 @@ from pyglet.window import key
 # http://swiftcoder.wordpress.com/2008/12/19/simple-glsl-wrapper-for-pyglet/
 from gletools import ShaderProgram
 from math import *
+# Renderers:
 import renderer
+import ripples
 
 # Global constants
 kScreenWidth = 864          ## Window width
@@ -29,6 +31,7 @@ kScreenHeight= 864          ## Window height
 kFullScreenMode = False     ## Fulscreen mode
 kMouseFocus = False         ## Window holds mouse focus
 kDesiredFPS = 120           ## Desired FPS (not guaranteed)
+                            
 # Derived constants
 kFPS = 1/float(kDesiredFPS) ## Loop period ms
 
@@ -42,8 +45,9 @@ window = pyglet.window.Window(caption='Caustics',
                               fullscreen=kFullScreenMode)
                               
 window.set_exclusive_mouse(kMouseFocus)
-renderer = renderer.Renderer(window)    
-                          
+
+renderer = renderer.Renderer(window) 
+
 # Main Render Loop
 def on_draw(dt):
     window.clear()

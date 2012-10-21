@@ -1,5 +1,3 @@
-#version 400
-
 vertex:
 
 attribute vec4 vPosition;
@@ -17,6 +15,7 @@ precision highp float;
 varying vec3 worldSpacePosition;
 uniform sampler2D texture; 
 uniform sampler2D bgTexture;
+uniform sampler2D ripples;
 uniform float depth;
 varying vec2 texCoord;  
 uniform float Timer;
@@ -28,6 +27,7 @@ uniform float uShowWaveFunc;
 uniform float uShowBumpMap;
 uniform float uEnableRefraction;
 uniform vec2 uLightPos;
+uniform float uRenderMode;
 
 uniform vec2 offset;
 
@@ -79,6 +79,17 @@ vec4 jet(float x)
    return vec4(red, green, blue, 1.0);
 }
 
+vec4 binary(float x)
+{
+   if(x > 0.0){
+     return vec4(1.0);
+   }
+   else
+   {
+     return vec4(0.0);
+   }
+}
+
 vec2 sombreroWave(float f, float x, float y, float timer) {
     vec2 wave = vec2(0.0);
     vec2 cPos = -1.0 + 2.0 * vec2(x, y); 
@@ -97,7 +108,15 @@ float sombrero(float x, float y, float timer, vec2 offset){
     float c = length(cpos);
     float f = cos(c * 2.5 * uWaveSize - timer * 2.0);
 
-    cpos = -1.0 + 2.0 * vec2(x+0.3,y+0.2);
+    cpos = -1.0 + 2.0 * vec2(x-0.3,y-0.2);
+    c = length(cpos);
+    f += cos(c * 2.5* uWaveSize - timer * 2.0);
+    
+    cpos = -1.0 + 2.0 * vec2(x+0.3,y-0.2);
+    c = length(cpos);
+    f += cos(c * 2.5* uWaveSize - timer * 2.0);
+    
+    cpos = -1.0 + 2.0 * vec2(x-0.3,y+0.2);
     c = length(cpos);
     f += cos(c * 2.5* uWaveSize - timer * 2.0);
     
@@ -132,6 +151,39 @@ vec4 bumpSombrero(float x, float y, float timer, vec2 offset) {
     return bump;
 }
 
+float packColour(vec4 colour) {
+  if(colour.b != 0.0)
+  {
+    return -(colour.r + colour.g * 32.0);
+  }
+  else
+  {
+    return (colour.r + colour.g * 32.0);
+  }
+}
+
+vec4 bumpRipples(float x, float y, float timer, vec2 offset) { 
+    // Use a composite of multiple sombrero waves to generate a bump map
+    //The result is a bump vector: xyz=normal, a=height
+    //  Y
+    //  |  Z    
+    //  | /
+    //  |/____X 
+    //
+    float s = 1.0 / 512.0;
+    
+    float s11 = packColour(texture2D(ripples, vec2(x , y)));
+    float s01 = packColour(texture2D(ripples, vec2(x-s , y+s)));
+    float s21 = packColour(texture2D(ripples, vec2(x , y+s)));
+    float s10 = packColour(texture2D(ripples, vec2(x+s , y-s)));
+    float s12 = packColour(texture2D(ripples, vec2(x+s , y)));
+        
+    vec3 va = normalize(vec3(2.0, 0.0, s21-s01)); 
+    vec3 vb = normalize(vec3(0.0, -2.0, s12-s10));
+    vec4 bump = vec4( cross(va,vb), abs(s11) );
+    return bump;
+}
+
 void main()
 {
     const float kPixStepSize = 1.0;
@@ -140,8 +192,22 @@ void main()
   
   
     // Wave Functions
-
-    vec4 bump = bumpSombrero(texCoord.x, texCoord.y, Timer, offset);
+    // Use either a wave function or the input 'ripples' texture as a source
+    // of the wave surface.
+    // Notes:
+    // bumpSombrero will produce a bumpmap from a composite of sombrero functions
+    // bumpRipples will use the 'ripples' texture input as the wave surface source.
+    
+    vec4 bump = vec4(0.0);
+    if(uRenderMode == 0.0){
+        // User interraction mode.
+        bump = bumpRipples(texCoord.x, texCoord.y, Timer, offset);
+    }
+    else if(uRenderMode == 1.0){
+        // Simulated waves mode.
+        bump = bumpSombrero(texCoord.x, texCoord.y, Timer, offset);
+    }
+    
     float D = bump.w;
     vec2 dxdy = bump.xy;
     
@@ -210,10 +276,12 @@ void main()
     colour += ((1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x))) * uCausticBrightness * texture2D(texture, intercept.xy * depth);
     colour *= 0.7;
     
+    // Toggle to show the heightmap of the wave function.
     if(uShowWaveFunc == 1.0){
-        colour = jet(bump.a);
+        colour = jet(bump.a/257.0);
     }
     
+    // Toggle to display the bump map.
     if(uShowBumpMap == 1.0){
         colour = vec4(bump.x, bump.y, bump.z, 1.0);
     }
