@@ -18,6 +18,23 @@ This code has been written in Python 2.7 with the following additional modules:
 
 [Gletools](http://codeflow.org/entries/2009/jul/31/gletools-advanced-pyglet-utilities/ "Gletools") to allow compilation of GLSL shaders
 
+Controls
+--------
+
+A listing of the controls is provided below:
+
++   **P** Reload the shaders. Shader hotloading is handy for debugging and tweaking.
++   **H** Lower the height of the water plane
++   **G** Raise the height of the water plane (maximum of 1.0)
++   **T** Raise the wave factor (wave function mode only)
++   **Y** Lower the wave factor (wave function mode only)
++   **J** Raise the brightness of the water caustics
++   **K** Lower the brightness of the water caustics
++   **NUM_2** Enable/Disable display of the wave function heightmap
++   **NUM_3** Enable/Disable display of the wave function bumpmap
++   **NUM_5** Toggle render mode between ripple and wave function mode
++   **MOUSE** Left click when in ripple mode to cause ripples at the mouse cursor
+
 Acknowledgements
 ----------------
 
