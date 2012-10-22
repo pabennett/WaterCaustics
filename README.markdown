@@ -32,6 +32,7 @@ A listing of the controls is provided below:
 +   **K** Lower the brightness of the water caustics
 +   **NUM_2** Enable/Disable display of the wave function heightmap
 +   **NUM_3** Enable/Disable display of the wave function bumpmap
++   **NUM_4** Enable/Disable Refraction
 +   **NUM_5** Toggle render mode between ripple and wave function mode
 +   **MOUSE** Left click when in ripple mode to cause ripples at the mouse cursor
 
