@@ -188,7 +188,7 @@ class Renderer():
         self.mWaterDepth = 1.0
         self.mShowWaveFunc = False
         self.mShowBumpMap = False
-        self.mEnableRefraction = False
+        self.mEnableRefraction = True
         
         self.mRenderMode = False    ## False -> Wave surface is generated from 
                                     ##          composite sombrero wave function.
