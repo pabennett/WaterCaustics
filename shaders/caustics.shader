@@ -138,27 +138,30 @@ vec4 bumpSombrero(float x, float y, float timer, vec2 offset) {
     //  |/____X 
     //
     float s = 1.0 / 512.0;
-    
+    const vec3 off = vec3(-s,0.0,s);
+    const vec2 size = vec2(2.0,0.0);
+        
     float s11 = (sombrero(x,   y,   timer, offset));
-    float s01 = (sombrero(x-s, y+s, timer, offset));
-    float s21 = (sombrero(x,   y+s, timer, offset));
-    float s10 = (sombrero(x+s, y-s, timer, offset));
-    float s12 = (sombrero(x+s, y,   timer, offset));
-    
-    vec3 va = normalize(vec3(2.0, 0.0, s21-s01)); 
-    vec3 vb = normalize(vec3(0.0, -2.0, s12-s10));
-    vec4 bump = vec4( cross(va,vb), abs(s11) );
+    float s01 = (sombrero(x + off.x,   y + off.y,   timer,  offset));
+    float s21 = (sombrero(x + off.z,   y + off.y,   timer,  offset));
+    float s10 = (sombrero(x + off.y,   y + off.x,   timer,  offset));
+    float s12 = (sombrero(x + off.y,   y + off.z,   timer,  offset));
+
+    vec3 va = normalize(vec3(size.xy,s21-s11));
+    vec3 vb = normalize(vec3(size.yx,s12-s10));
+    vec4 bump = vec4( cross(va,vb), s11 );
+
     return bump;
 }
 
 float packColour(vec4 colour) {
   if(colour.b != 0.0)
   {
-    return -(colour.r + colour.g * 32.0);
+    return -(colour.r + colour.g * 256.0);
   }
   else
   {
-    return (colour.r + colour.g * 32.0);
+    return (colour.r + colour.g * 256.0);
   }
 }
 
@@ -171,17 +174,20 @@ vec4 bumpRipples(float x, float y, float timer, vec2 offset) {
     //  |/____X 
     //
     float s = 1.0 / 512.0;
-    
-    float s11 = packColour(texture2D(ripples, vec2(x , y)));
-    float s01 = packColour(texture2D(ripples, vec2(x-s , y+s)));
-    float s21 = packColour(texture2D(ripples, vec2(x , y+s)));
-    float s10 = packColour(texture2D(ripples, vec2(x+s , y-s)));
-    float s12 = packColour(texture2D(ripples, vec2(x+s , y)));
+    const vec3 off = vec3(-s,0.0,s);
+    const vec2 size = vec2(128.0,0.0);
         
-    vec3 va = normalize(vec3(2.0, 0.0, s21-s01)); 
-    vec3 vb = normalize(vec3(0.0, -2.0, s12-s10));
-    vec4 bump = vec4( cross(va,vb), abs(s11) );
-    return bump;
+    float s11 = packColour(texture2D(ripples, vec2(x,y)));
+    float s01 = packColour(texture2D(ripples, vec2(x + off.x,y + off.y)));
+    float s21 = packColour(texture2D(ripples, vec2(x + off.z,y + off.y)));
+    float s10 = packColour(texture2D(ripples, vec2(x + off.y,y + off.x)));
+    float s12 = packColour(texture2D(ripples, vec2(x + off.y,y + off.z)));
+
+    vec3 va = normalize(vec3(size.xy,s21-s01));
+    vec3 vb = normalize(vec3(size.yx,s12-s10));
+    vec4 bump = vec4( cross(va,vb), s11 );
+
+    return bump;  
 }
 
 void main()
@@ -225,15 +231,9 @@ void main()
     if (uEnableRefraction == 1.0) {
     // Diffraction 
         float rIndex = 2.0;
-        float xDiff = (sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize * 2.0, texCoord.y * kPixStepSize, Timer)
-                    - sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize, Timer)).x;
+        float xDiff = dxdy.x * 1.0;
                     
-        float yDiff = (sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize * 2.0, Timer)
-                    - sombreroWave(35.0, (texCoord.x + offset.x) * kPixStepSize, texCoord.y * kPixStepSize, Timer)).y;
-
-                    
-        yDiff *= 0.2;
-        xDiff *= 0.2;    
+        float yDiff = dxdy.y * 1.0;
                     
         float xAngle = atan(xDiff);
         float xRefraction = asin(sin(xAngle) / rIndex);
@@ -242,43 +242,40 @@ void main()
         float yAngle = atan(yDiff);
         float yRefraction = asin(sin(yAngle) / rIndex);
         float yDisplace = tan(yRefraction) * yDiff;
-        
-        xDisplace *= 0.25;
-        yDisplace *= 0.25;
-        
+                
         if (xDiff < 0.0) {
           if (yDiff < 0.0) {
-            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) - xDisplace , (texCoord.y * 4.0) - yDisplace));
+            colour = texture2D(bgTexture, vec2((texCoord.x * 2.0) - xDisplace , (texCoord.y * 2.0) - yDisplace));
           }
           else
           {
-            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) - xDisplace , (texCoord.y * 4.0) + yDisplace));
+            colour = texture2D(bgTexture, vec2((texCoord.x * 2.0) - xDisplace , (texCoord.y * 2.0) + yDisplace));
           }
         }
         else
         {
           if (yDiff < 0.0){
-            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) + xDisplace , (texCoord.y * 4.0)- yDisplace));
+            colour = texture2D(bgTexture, vec2((texCoord.x * 2.0) + xDisplace , (texCoord.y * 2.0)- yDisplace));
           }
           else
           {
-            colour = texture2D(bgTexture, vec2((texCoord.x * 4.0) + xDisplace , (texCoord.y * 4.0) + yDisplace));
+            colour = texture2D(bgTexture, vec2((texCoord.x * 2.0) + xDisplace , (texCoord.y * 2.0) + yDisplace));
           }
         }
     }
     else
     {
-        colour = texture2D(bgTexture, vec2(texCoord.x * 4.0, texCoord.y * 4.0));
+        colour = texture2D(bgTexture, vec2(texCoord.x * 2.0, texCoord.y * 2.0));
     }
     
     // Apply caustics & positional light
-    colour += 0.25*(1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x));
+    //colour += 0.25*(1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x));
     colour += ((1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x))) * uCausticBrightness * texture2D(texture, intercept.xy * depth);
     colour *= 0.7;
     
     // Toggle to show the heightmap of the wave function.
     if(uShowWaveFunc == 1.0){
-        colour = jet(bump.a/257.0);
+        colour = jet((bump.a + 256.0)/512.0);
     }
     
     // Toggle to display the bump map.
