@@ -217,7 +217,7 @@ class Renderer():
         self.mOffsetTimerStep = 0.0001
         self.mOffset = [0.0, 0.0]
         self.mTimerRewind = False
-        self.mTimerStep = 0.004
+        self.mTimerStep = pi/1000.
         self.mCausticBrightness = 1.0;    
         self.mLightPos = [0.5, 0.5]       
     def loadShaders(self):
@@ -322,10 +322,7 @@ class Renderer():
         elif self.mOffsetTimerEnabled:
             self.mOffsetTimer += self.mOffsetTimerStep
 
-        if self.mTimer >= 1.0:
-            self.mTimer = 0.0
-        else:
-            self.mTimer += self.mTimerStep
+        self.mTimer += self.mTimerStep
             
         self.mBufferSelect = not self.mBufferSelect
         
@@ -481,11 +478,11 @@ class Renderer():
             self.mCausticBrightness -= 0.1    
         # Depth Control
         if symbol == key.H:
-            self.mWaterDepth -= 0.1    
+            self.mWaterDepth -= 0.01    
             print "Depth: " + str(self.mWaterDepth)
         if symbol == key.G:
-            if self.mWaterDepth <= 0.9:
-                self.mWaterDepth += 0.1
+            if self.mWaterDepth <= 0.99:
+                self.mWaterDepth += 0.01
             else:
                 print "Depth is clamped to <= 1.0!"
             print "Depth: " + str(self.mWaterDepth)
