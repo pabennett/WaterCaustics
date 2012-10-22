@@ -12,7 +12,6 @@ void main(){
 fragment:
 
 precision highp float;
-varying vec3 worldSpacePosition;
 uniform sampler2D texture; 
 uniform sampler2D bgTexture;
 uniform sampler2D ripples;
@@ -69,6 +68,8 @@ vec3 line_plane_intercept(vec3 pl,vec3 vl,vec3 npl,float  depth)
     return pl + vl * distance;
 }
 
+// Produce from the float input x (range 0.0 to 1.0) a vec4 colour using the
+// common 'Jet' colour mapping.
 vec4 jet(float x)
 {
    x = 4*x;
@@ -77,26 +78,6 @@ vec4 jet(float x)
    float blue  = clamp(min(x + 0.5, -x + 2.5),0.0,1.0);
    
    return vec4(red, green, blue, 1.0);
-}
-
-vec4 binary(float x)
-{
-   if(x > 0.0){
-     return vec4(1.0);
-   }
-   else
-   {
-     return vec4(0.0);
-   }
-}
-
-vec2 sombreroWave(float f, float x, float y, float timer) {
-    vec2 wave = vec2(0.0);
-    vec2 cPos = -1.0 + 2.0 * vec2(x, y); 
-    float cLength = length(cPos);
-    //wave = (vec2(1.0, 1.0) + (cPos/cLength)*cos(cLength*f-timer*4.0))*0.5;
-    wave = vec2(x, y) + (vec2(1.0, 1.0) + (cPos/cLength)*cos(cLength*0.9-timer*4.0) * 0.5);
-    return wave;
 }
     
 float sombrero(float x, float y, float timer, vec2 offset){
@@ -124,14 +105,14 @@ float sombrero(float x, float y, float timer, vec2 offset){
     c = length(cpos);
     f += cos(c * 1.0 * uWaveSize - timer * 2.0) * 8.0;
     
-    // Normalise
+    // Apply factor
     f *= 10.0 * uFactor;
     return f;
 }
 
 vec4 bumpSombrero(float x, float y, float timer, vec2 offset) {    
     // Use a composite of multiple sombrero waves to generate a bump map
-    //The result is a bump vector: xyz=normal, a=height
+    // The result is a bump vector: xyz=normal, a=height
     //  Y
     //  |  Z    
     //  | /
@@ -154,6 +135,10 @@ vec4 bumpSombrero(float x, float y, float timer, vec2 offset) {
     return bump;
 }
 
+// The ripple texture stores the height of each pixel in the r,g and b channels,
+// where R = 0.0 to 1.0 in steps of 2**-8, G = 0 to 256 in steps of 1 and
+// B denotes the sign (0 = Negative, 1 = Positive)
+// Pack the R,G,B channels into a single float using this scheme.
 float packColour(vec4 colour) {
   if(colour.b != 0.0)
   {
@@ -229,11 +214,10 @@ void main()
         
     // Apply Refraction
     if (uEnableRefraction == 1.0) {
-    // Diffraction 
         float rIndex = 2.0;
-        float xDiff = dxdy.x * 1.0;
+        float xDiff = dxdy.x;
                     
-        float yDiff = dxdy.y * 1.0;
+        float yDiff = dxdy.y;
                     
         float xAngle = atan(xDiff);
         float xRefraction = asin(sin(xAngle) / rIndex);
@@ -269,7 +253,6 @@ void main()
     }
     
     // Apply caustics & positional light
-    //colour += 0.25*(1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x));
     colour += ((1.0 - abs(uLightPos.y - texCoord.y)) * (1.0 - abs(uLightPos.x - texCoord.x))) * uCausticBrightness * texture2D(texture, intercept.xy * depth);
     colour *= 0.7;
     
