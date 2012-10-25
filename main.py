@@ -24,6 +24,7 @@ from math import *
 # Renderers:
 import renderer
 import ripples
+import camera
 
 # Global constants
 kScreenWidth = 864          ## Window width
@@ -46,8 +47,8 @@ window = pyglet.window.Window(caption='Caustics',
                               
 window.set_exclusive_mouse(kMouseFocus)
 
-renderer = renderer.Renderer(window) 
-
+camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
+renderer = renderer.Renderer(window, camera) 
 # Main Render Loop
 def on_draw(dt):
     window.clear()
@@ -55,7 +56,7 @@ def on_draw(dt):
     
 # Initialisation
 if __name__ == '__main__':
-    glClearColor(0.0, 0.2, 0.0, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glViewport(0, 0, kScreenWidth, kScreenHeight)
   
 clock.schedule_interval(on_draw, kFPS)

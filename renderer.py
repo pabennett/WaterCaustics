@@ -1,7 +1,6 @@
 __author__ = "Peter Bennett"
 __copyright__ = "Copyright 2012, Peter A Bennett"
 __license__ = "LGPL"
-__version__ = "0.1"
 __maintainer__ = "Peter Bennett"
 __email__ = "pab850@gmail.com"
 __contact__ = "www.bytebash.com"
@@ -17,7 +16,8 @@ from pyglet.window import key, mouse
 from gletools import ShaderProgram
 from math import *
 import ctypes
-
+# Quaternion based freelook camera
+import camera
 def frameBuffer(tex):
     """ Create a framebuffer object and link it to the given texture """
     fbo = GLuint()
@@ -72,7 +72,7 @@ class Renderer():
 
     """
 
-    def __init__(self, window):
+    def __init__(self, window, camera):
         """ Constructor """
         # Register the renderer for control input
         self.keys = key.KeyStateHandler()
@@ -89,6 +89,7 @@ class Renderer():
         (szx, szy) = self.window.get_size()
         self.width = szx
         self.height = szy
+        self.camera = camera
         
         # Texture size
         self.texWidth = 512
@@ -100,14 +101,14 @@ class Renderer():
         self.COORDS_PER_TEXTURE = 2
         
         self.mGndVertices = (GLfloat * 24)(
-            1.0,    -1.0,   0.0,
-            1.0,    1.0,    0.0,
-            -1.0,   1.0,    0.0,
-            -1.0,   -1.0,   0.0,
-            1.0,    -1.0,   0.0,
-            1.0,    1.0,    0.0,
-            -1.0,   1.0,    0.0,
-            -1.0,   -1.0,   0.0)
+            1.0,    0.0,   -1.0,
+            1.0,    0.0,    1.0,
+            -1.0,   0.0,    1.0,
+            -1.0,   0.0,   -1.0,
+            1.0,    0.0,   -1.0,
+            1.0,    0.0,    1.0,
+            -1.0,   0.0,    1.0,
+            -1.0,   0.0,   -1.0)
             
         self.mGndIndices = (GLshort * 12)(
             0,  1,  2,
@@ -159,6 +160,8 @@ class Renderer():
 
         self.mPositionHandle = glGetAttribLocation(self.mMainShader.id, "vPosition")
         self.mTextureCoordinateHandle = glGetAttribLocation(self.mMainShader.id, "vTexCoord")
+        self.mViewMatrixHandle = glGetUniformLocation(self.mMainShader.id, "modelViewMatrix")
+        self.mProjectionMatrixHandle = glGetUniformLocation(self.mMainShader.id, "projectionMatrix")
         self.mTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "texture")
         self.mBGTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "bgTexture")
         self.mRippleTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "ripples")
@@ -281,7 +284,7 @@ class Renderer():
                               False, 
                               0, 
                               self.mTexCoords )
-    		 
+             
         # Set tweakables
         glUniform1f(self.mWaterDepthHandle, -0.8)
         glUniform1f(self.mWaterDepthHandle, self.mWaterDepth)
@@ -300,16 +303,20 @@ class Renderer():
         self.mOffset = [sin(2*pi*self.mOffsetTimer),cos(2*pi*self.mOffsetTimer)]
         glUniform2fv(self.mOffsetHandle, 1, (GLfloat*2)(self.mOffset[0],self.mOffset[1]))
 
+        # Camera control
+        glUniformMatrix4fv(self.mViewMatrixHandle, 1, False, self.camera.getModelView())
+        glUniformMatrix4fv(self.mProjectionMatrixHandle, 1, False, self.camera.getProjection())
+
         # Enable vertex attribute arrays
         glEnableVertexAttribArray(self.mPositionHandle)
         glEnableVertexAttribArray(self.mTextureCoordinateHandle)
-    				 
+                     
         # Draw triangles
         glDrawElements(GL_TRIANGLES, 
                        len(self.mGndIndices), 
                        GL_UNSIGNED_SHORT, 
                        self.mGndIndices)
-    		 
+             
         # Disable arrays
         glDisableVertexAttribArray(self.mPositionHandle)
         glDisableVertexAttribArray(self.mTextureCoordinateHandle)
@@ -340,20 +347,20 @@ class Renderer():
         self.renderToCopy(textureHandleA)
         # Bind FBO A/B to set Texture A/B as the output texture
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, frameBufferHandle)
-    		
+            
         # Set the viewport to the size of the texture 
         # (we are going to render to texture)
         glViewport(0,0, self.texWidth, self.texHeight)
-    		
+            
         # Clear the output texture
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    		 
+             
         # Bind the automata shader
         glUseProgram(self.mRippleShader.id)
-    		
+            
         # Make texture register 0 active and bind texture B/A as the input
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, textureHandleB.id)	 
+        glBindTexture(GL_TEXTURE_2D, textureHandleB.id)     
         # Tell the texture uniform sampler to use this texture in the shader by
         #binding to texture unit 0.
         glUniform1i(self.mWaterTextureUniformHandle, 0)
@@ -361,7 +368,7 @@ class Renderer():
         glActiveTexture(GL_TEXTURE2)
         glBindTexture(GL_TEXTURE_2D, self.mTextureCHandle.id)
         glUniform1i(self.mCWaterTextureUniformHandle, 2)
-    	     
+             
         # Update the 'tapped' uniform for user interaction
         if self.mTapped:
             self.mTapped = False
@@ -403,7 +410,7 @@ class Renderer():
         glDisableVertexAttribArray(self.mPositionHandle)
         glDisableVertexAttribArray(self.mTextureCoordinateHandle)
         # Unbind shader and FBO
-        glUseProgram(0)				
+        glUseProgram(0)                
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)             
     def renderToCopy(self, textureToCopy):
         # Bind FBO C to set Texture C as the output texture
@@ -412,16 +419,16 @@ class Renderer():
         # Set the viewport to the size of the texture 
         # (we are going to render to texture)
         glViewport(0,0, self.texWidth, self.texHeight)
-    		
+            
         # Clear the output texture
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    		 
+             
         # Bind the passthru shader
         glUseProgram(self.mCopyShader.id)
-    		
+            
         # Make texture register 0 active and bind texture B/A as the input
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, textureToCopy.id)	 
+        glBindTexture(GL_TEXTURE_2D, textureToCopy.id)     
         # Tell the texture uniform sampler to use this texture in the shader by
         #binding to texture unit 0.
         glUniform1i(self.mCopyTextureUniformHandle, 0)
@@ -453,9 +460,9 @@ class Renderer():
         glDisableVertexAttribArray(self.mPositionHandle)
         glDisableVertexAttribArray(self.mTextureCoordinateHandle)
         # Unbind shader and FBO
-        glUseProgram(0)				
+        glUseProgram(0)                
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
-            
+                    
     def on_key_press(self, symbol, modifiers):
         """ Handle key press events"""
         # Display mode control
@@ -497,6 +504,14 @@ class Renderer():
             self.mWaveFactor -= 0.5
         if symbol == key.P:
             self.loadShaders()
+            
+        if symbol == key.UP:
+            self.camera.move(0.0, 0.0, 0.1)
+        if symbol == key.DOWN:
+            self.camera.move(0.0, 0.0, -0.1)
+            
+        if symbol == key.SPACE:
+            self.camera.setpos(0.0, 4.0, 4.0)
         
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """ Handle mouse drag events """
@@ -518,6 +533,7 @@ class Renderer():
         pass
     def on_mouse_motion(self, x, y, dx, dy):
         """ Handle mouse motion events """
+        self.camera.orient(dx, dy, 0.0)
         (szx, szy) = self.window.get_size()
         self.mLightPos = [x/float(szx),
                           y/float(szy)]

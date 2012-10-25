@@ -2,10 +2,12 @@ vertex:
 
 attribute vec4 vPosition;
 attribute vec2 vTexCoord;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
 varying vec2 texCoord;
 
 void main(){
-	gl_Position = vPosition;
+	gl_Position = projectionMatrix * (modelViewMatrix * vPosition);
 	texCoord = vTexCoord;
 }
 
@@ -85,25 +87,25 @@ float sombrero(float x, float y, float timer, vec2 offset){
     //f(x,y) = cos(sqrt(x**2 + y**2))
     float phase = timer * 4.0;
 
-    vec2 cpos = -1.0 + 2.0 * vec2(x+0.25 ,y + 0.3);
+    vec2 cpos = -1.0 + 2.0 * vec2(x ,y);
     float c = length(cpos);
-    float f = cos(c * 2.5 * uWaveSize - timer * 2.0);
+    float f = cos(c * 1.5 * uWaveSize - timer * 2.0);
 
-    cpos = -1.0 + 2.0 * vec2(x-0.3,y-0.2);
-    c = length(cpos);
-    f += cos(c * 2.5* uWaveSize - timer * 2.0);
+    // cpos = -1.0 + 2.0 * vec2(x-0.3,y-0.2);
+    // c = length(cpos);
+    // f += cos(c * 2.5* uWaveSize - timer * 2.0);
     
-    cpos = -1.0 + 2.0 * vec2(x+0.3,y-0.2);
-    c = length(cpos);
-    f += cos(c * 2.5* uWaveSize - timer * 2.0);
+    // cpos = -1.0 + 2.0 * vec2(x+0.3,y-0.2);
+    // c = length(cpos);
+    // f += cos(c * 2.5* uWaveSize - timer * 2.0);
     
-    cpos = -1.0 + 2.0 * vec2(x-0.3,y+0.2);
-    c = length(cpos);
-    f += cos(c * 2.5* uWaveSize - timer * 2.0);
+    // cpos = -1.0 + 2.0 * vec2(x-0.3,y+0.2);
+    // c = length(cpos);
+    // f += cos(c * 2.5* uWaveSize - timer * 2.0);
     
-    cpos = -1.0 + 2.0 * vec2(x+2.5,y+2.5);
-    c = length(cpos);
-    f += cos(c * 1.0 * uWaveSize - timer * 2.0) * 8.0;
+    // cpos = -1.0 + 2.0 * vec2(x+2.5,y+2.5);
+    // c = length(cpos);
+    // f += cos(c * 1.0 * uWaveSize - timer * 2.0) * 8.0;
     
     // Apply factor
     f *= 10.0 * uFactor;
@@ -160,7 +162,7 @@ vec4 bumpRipples(float x, float y, float timer, vec2 offset) {
     //
     float s = 1.0 / 512.0;
     const vec3 off = vec3(-s,0.0,s);
-    const vec2 size = vec2(128.0,0.0);
+    const vec2 size = vec2(256.0,0.0);
         
     float s11 = packColour(texture2D(ripples, vec2(x,y)));
     float s01 = packColour(texture2D(ripples, vec2(x + off.x,y + off.y)));
@@ -178,9 +180,7 @@ vec4 bumpRipples(float x, float y, float timer, vec2 offset) {
 void main()
 {
     const float kPixStepSize = 1.0;
-    vec3 vertPos = vec3(texCoord.x, texCoord.y, 0.0);
-    vertPos *= kPixStepSize;
-  
+    vec3 vertPos = vec3(texCoord.x, texCoord.y , 0.0);
   
     // Wave Functions
     // Use either a wave function or the input 'ripples' texture as a source
@@ -199,15 +199,15 @@ void main()
         bump = bumpSombrero(texCoord.x, texCoord.y, Timer, offset);
     }
     
-    float D = bump.w;
+    float D = depth+(1.0-bump.z);
     vec2 dxdy = bump.xy;
     
     // Caustics
     vec3 intercept = line_plane_intercept(  vertPos.xyz,
                                             vec3(dxdy, 1.0), 
                                             vec3(0, 0, 1), 
-                                            -depth);
-    intercept.xy *= depth;
+                                            -D);
+    intercept.xy *= D;
     
     // Generate output
     vec4 colour;
