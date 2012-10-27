@@ -52,7 +52,7 @@ renderer = renderer.Renderer(window, camera)
 # Main Render Loop
 def on_draw(dt):
     window.clear()
-    renderer.draw()
+    renderer.draw(dt)
     
 # Initialisation
 if __name__ == '__main__':

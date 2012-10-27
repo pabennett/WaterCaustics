@@ -76,6 +76,7 @@ class Renderer():
         """ Constructor """
         # Register the renderer for control input
         self.keys = key.KeyStateHandler()
+        self.pressedKeys = {}
         self.window = window
         self.window.push_handlers(self.on_key_press)
         self.window.push_handlers(self.on_key_release)
@@ -230,9 +231,24 @@ class Renderer():
         self.mMainShader = ShaderProgram.open('shaders/caustics.shader')
         self.mRippleShader = ShaderProgram.open('shaders/ripples.shader')
         self.mCopyShader = ShaderProgram.open('shaders/passthru.shader')
-    def draw(self):          
+    def draw(self, dt):          
         """ Main draw loop """
+
+        """ Deal with while-key-pressed actions here """
+        if self.isKeyPressed(key.W):
+            self.camera.addVelocity(0.0, 0.0, 0.1)
+        if self.isKeyPressed(key.S):
+            self.camera.addVelocity(0.0, 0.0, -0.1)
+        if self.isKeyPressed(key.A):
+            self.camera.addVelocity(-0.1, 0.0, 0.0)
+        if self.isKeyPressed(key.D):
+            self.camera.addVelocity(0.1, 0.0, 0.0)
+        if self.isKeyPressed(key.Q):
+            self.camera.addAngularVelocity(0.0, 0.0, 0.1)
+        if self.isKeyPressed(key.E):
+            self.camera.addAngularVelocity(0.0, 0.0, -0.1)
         
+        """ Rendering code starts here """
         if self.mBufferSelect:
             self.renderToFBO(self.mFrameBufferAHandle, 
                         self.mTextureAHandle, 
@@ -303,6 +319,7 @@ class Renderer():
         glUniform2fv(self.mOffsetHandle, 1, (GLfloat*2)(self.mOffset[0],self.mOffset[1]))
 
         # Camera control
+        self.camera.update(dt)
         glUniformMatrix4fv(self.mMVPHandle, 1, False, self.camera.getMVP())
 
         # Enable vertex attribute arrays
@@ -463,6 +480,10 @@ class Renderer():
                     
     def on_key_press(self, symbol, modifiers):
         """ Handle key press events"""
+        
+        # Set the pressedKeys dict to allow us to have while-key-pressed actions
+        self.pressedKeys[symbol] = True
+        
         # Display mode control
         if symbol == key.NUM_3:
             self.mShowBumpMap = not self.mShowBumpMap 
@@ -502,24 +523,11 @@ class Renderer():
             self.mWaveFactor -= 0.5
         if symbol == key.P:
             self.loadShaders()
-            
-        if symbol == key.W:
-            self.camera.move(0.0, 0.0, 0.1)
-        if symbol == key.S:
-            self.camera.move(0.0, 0.0, -0.1)
-        if symbol == key.A:
-            self.camera.move(-0.1, 0.0, 0.0)
-        if symbol == key.D:
-            self.camera.move(0.1, 0.0, 0.01)
-            
-        if symbol == key.Q:
-            self.camera.orient(0.0, 0.0, 15)
-        if symbol == key.E:
-            self.camera.orient(0.0, 0.0, -15)
-
-        if symbol == key.SPACE:
-            self.camera.setpos(0.0, 4.0, 4.0)
-        
+    def isKeyPressed(self, symbol):
+        if symbol in self.pressedKeys:
+            return self.pressedKeys[symbol]
+        return False
+    
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """ Handle mouse drag events """
         (szx, szy) = self.window.get_size()
@@ -537,10 +545,10 @@ class Renderer():
         pass        
     def on_key_release(self, symbol, modifiers):
         """ Handle key release events """
-        pass
+        self.pressedKeys[symbol] = False
     def on_mouse_motion(self, x, y, dx, dy):
         """ Handle mouse motion events """
-        self.camera.orient(-dx/2., dy/2., 0.0)
+        self.camera.addAngularVelocity(-dx/2., dy/2., 0.0)
         (szx, szy) = self.window.get_size()
         self.mLightPos = [x/float(szx),
                           y/float(szy)]

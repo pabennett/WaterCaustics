@@ -44,3 +44,5 @@ class Vector3():
         """ Return a copy of this vector as a unit vector. """
         mag = self.magnitude()
         return Vector3(self.x / mag,self.y / mag,self.z / mag)
+    def values(self):
+        return [self.x, self.y, self.z]

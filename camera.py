@@ -40,6 +40,7 @@ class Camera():
         self.fzNear = fzNear
         self.fzFar = fzFar
         self.flightMode = True
+        self.damping = 2.8
         
         # Vectors
         self.position = Vector3(0.0, 0.0, 0.0)
@@ -91,43 +92,42 @@ class Camera():
         
         # Update MVP
         self.MVP = self.projection * self.view
-    def update(self, yaw, pitch, roll, dx, dy, dz, dt):
+    def update(self, dt):
         """
-        Update the camera velocity
-        yaw     :   The angle in degrees by which the camera should rotate 
-                    horizontally
-        pitch   :   The angle in degrees by which the camera should rotate 
-                    vertically
-        roll    :   The angle in degrees by which the camera should rotate about
-                    its view axis  
-        dx      :   The x axis delta
-        dy      :   The y axis delta
-        dz      :   The z axis delta    
+        Update the camera's position and orientation through a physics system
+        update. This function should be called in the main render loop with the
+        time delta passed as an argument.
         dt      :   Time delta since last call
         """
         dt = 0.03 if dt < 0.03 else dt
         dt = 1.0 if dt > 1.0 else dt
         
-        self.angularVelocity += Vector3(yaw * dt, pitch * dt, roll * dt)
-        self.angularVelocity -= self.angularVelocity * dt
+        self.angularVelocity -= self.angularVelocity * (dt * self.damping)
+        self.moveVelocity -= self.moveVelocity * (dt * self.damping)
         
-        if(self.angularVelocity.magnitude() != 0.0):
-            orient(self.angularVelocity)
-        
-        self.addVelocity(dx, dy, dz)
-        self.moveVelocity -= self.moveVelocity * dt
+        self.orient(*(self.angularVelocity * dt).values())
         self.position += self.moveVelocity * dt
+        
         self.updateViewMatrix()
     def addVelocity(self, dx, dy, dz):
         self.moveVelocity += self.xAxis * dx
-        self.moveVelocity += self.yAxis * dy
+        self.moveVelocity += WORLD_YAXIS * dy
         if(self.flightMode):
             self.moveVelocity += self.flightForward * dz
         else:
             self.moveVelocity += self.forward * dz
+            
+    def addAngularVelocity(self, yaw, pitch, roll):
+        """
+        Apply the given yaw, pitch and roll to the camera's angular velocity,
+        causing it to rotate over time.
+        """
+        self.angularVelocity += Vector3(yaw, pitch, roll)
+        
     def orient(self, yaw, pitch, roll):
         """
         Apply the given yaw, pitch and roll to the current camera orientation.
+        This takes effect immediately and bypasses the physics system.
         yaw     :   The angle in degrees by which the camera should rotate
                     horizontally
         pitch   :   The angle in degrees by which the camera should rotate
