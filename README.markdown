@@ -35,6 +35,7 @@ A listing of the controls is provided below:
 +   **NUM_4** Enable/Disable Refraction
 +   **NUM_5** Toggle render mode between ripple and wave function mode
 +   **MOUSE** Left click when in ripple mode to cause ripples at the mouse cursor
++   **SPACE** Enable or disable the camera system
 
 Acknowledgements
 ----------------
