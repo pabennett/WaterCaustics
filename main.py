@@ -29,8 +29,8 @@ import console
 # Global constants
 kScreenWidth = 864          # Window width
 kScreenHeight= 864          # Window height
-kFullScreenMode = False      # Fulscreen mode
-kMouseFocus = True          # Window holds mouse focus
+kFullScreenMode = False     # Fulscreen mode
+kMouseFocus = False         # Window holds mouse focus
 kDesiredFPS = 120           # Desired FPS (not guaranteed)
                             
 # Derived constants

@@ -3,10 +3,17 @@ vertex:
 attribute vec4 vPosition;
 attribute vec2 vTexCoord;
 uniform mat4 MVP;
+uniform float uCamEnable;
 varying vec2 texCoord;
 
 void main(){
-	gl_Position = MVP * vPosition;
+    if(uCamEnable == 1.0) {
+        gl_Position = MVP * vPosition;
+    }
+    else
+    {
+        gl_Position = vPosition;
+    }
 	texCoord = vTexCoord;
 }
 

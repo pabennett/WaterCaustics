@@ -124,7 +124,7 @@ class Camera():
         """
         self.angularVelocity += Vector3(yaw, pitch, roll)
         
-    def orient(self, yaw, pitch, roll):
+    def orient(self, yaw, pitch, roll, additive=True):
         """
         Apply the given yaw, pitch and roll to the current camera orientation.
         This takes effect immediately and bypasses the physics system.
@@ -134,8 +134,14 @@ class Camera():
                     vertically
         roll    :   The angle in degrees by which the camera should rotate about
                     its view axis  
+        additive:   If true, apply the yaw pitch and roll to the current 
+                    orientation. Otherwise create a new orientation from these
+                    values.
         """
         rotation = Quaternion()
+        
+        if not additive:
+            self.orientation = Quaternion()
         
         """ 
             Apply the y-axis delta to the quaternion.
@@ -211,6 +217,7 @@ class Camera():
         """
         self.position = Vector3(x,y,z)
         self.positionUpdateViewMatrix()
+    
     def updateViewMatrix(self):
         """
         Generate a view matrix from the camera orientation and position and 

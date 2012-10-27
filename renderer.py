@@ -112,7 +112,7 @@ class Renderer():
             -1.0,   0.0,    1.0,
             -1.0,   0.0,   -1.0)
             
-        self.mfullScreenQuad = (GLfloat * 24)(
+        self.mFullScreenQuad = (GLfloat * 24)(
             1.0,    -1.0,   0.0,
             1.0,    1.0,    0.0,
             -1.0,   1.0,    0.0,
@@ -177,7 +177,9 @@ class Renderer():
         self.mBGTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "bgTexture")
         self.mRippleTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "ripples")
         self.mRenderModeUniformHandle = glGetUniformLocation(self.mMainShader.id, "uRenderMode")
-
+        self.mCamEnableUniform = glGetUniformLocation(self.mMainShader.id, "uCamEnable")
+        
+        
         # Shader handles (water ripple shader)
         self.mWaterTextureUniformHandle = glGetUniformLocation(self.mRippleShader.id, "texture")
         self.mCWaterTextureUniformHandle = glGetUniformLocation(self.mRippleShader.id, "currentTexture")
@@ -203,6 +205,7 @@ class Renderer():
         self.mShowWaveFunc = False
         self.mShowBumpMap = False
         self.mEnableRefraction = True
+        self.camEnable = False
         
         self.mRenderMode = False    ## False -> Wave surface is generated from 
                                     ##          composite sombrero wave function.
@@ -246,18 +249,21 @@ class Renderer():
         """ Main draw loop """
 
         """ Deal with while-key-pressed actions here """
-        if self.isKeyPressed(key.W):
-            self.camera.addVelocity(0.0, 0.0, 0.1)
-        if self.isKeyPressed(key.S):
-            self.camera.addVelocity(0.0, 0.0, -0.1)
-        if self.isKeyPressed(key.A):
-            self.camera.addVelocity(-0.1, 0.0, 0.0)
-        if self.isKeyPressed(key.D):
-            self.camera.addVelocity(0.1, 0.0, 0.0)
-        if self.isKeyPressed(key.Q):
-            self.camera.addAngularVelocity(0.0, 0.0, 0.1)
-        if self.isKeyPressed(key.E):
-            self.camera.addAngularVelocity(0.0, 0.0, -0.1)
+        
+        # Camera controls
+        if self.camEnable:
+            if self.isKeyPressed(key.W):
+                self.camera.addVelocity(0.0, 0.0, 0.1)
+            if self.isKeyPressed(key.S):
+                self.camera.addVelocity(0.0, 0.0, -0.1)
+            if self.isKeyPressed(key.A):
+                self.camera.addVelocity(-0.1, 0.0, 0.0)
+            if self.isKeyPressed(key.D):
+                self.camera.addVelocity(0.1, 0.0, 0.0)
+            if self.isKeyPressed(key.Q):
+                self.camera.addAngularVelocity(0.0, 0.0, 0.1)
+            if self.isKeyPressed(key.E):
+                self.camera.addAngularVelocity(0.0, 0.0, -0.1)
 
         """ Rendering code starts here """
         if self.mBufferSelect and not self.mRenderMode:
@@ -297,20 +303,28 @@ class Renderer():
         glUniform1i(self.mRippleTextureUniformHandle, 2)
         
         
-        # Set up the vertex attributes
-        glVertexAttribPointer(self.mPositionHandle, 
-                              self.COORDS_PER_VERTEX, 
-                              GL_FLOAT, 
-                              False, 
-                              12, 
-                              self.mGndVertices )
-                                                            
+        # Set up the vertex attributes                              
         glVertexAttribPointer(self.mTextureCoordinateHandle, 
                               2, 
                               GL_FLOAT, 
                               False, 
                               0, 
                               self.mTexCoords )
+        if self.camEnable:                                          
+            glVertexAttribPointer(self.mPositionHandle, 
+                                  self.COORDS_PER_VERTEX, 
+                                  GL_FLOAT, 
+                                  False, 
+                                  12, 
+                                  self.mGndVertices )
+        else:
+            # Draw a full screen quad instead.
+            glVertexAttribPointer(self.mPositionHandle, 
+                                  self.COORDS_PER_VERTEX, 
+                                  GL_FLOAT, 
+                                  False, 
+                                  12, 
+                                  self.mFullScreenQuad )
              
         # Set tweakables
         glUniform1f(self.mWaterDepthHandle, -0.8)
@@ -331,8 +345,10 @@ class Renderer():
         glUniform2fv(self.mOffsetHandle, 1, (GLfloat*2)(self.mOffset[0],self.mOffset[1]))
 
         # Camera control
-        self.camera.update(dt)
+        if self.camEnable:
+            self.camera.update(dt)
         glUniformMatrix4fv(self.mMVPHandle, 1, False, self.camera.getMVP())
+        glUniform1f(self.mCamEnableUniform, self.camEnable)
 
         # Enable vertex attribute arrays
         glEnableVertexAttribArray(self.mPositionHandle)
@@ -419,7 +435,7 @@ class Renderer():
                               GL_FLOAT, 
                               False, 
                               12, 
-                              self.mfullScreenQuad)
+                              self.mFullScreenQuad)
                               
         glVertexAttribPointer(self.mWaterTextureCoordinateHandle, 
                               2, 
@@ -469,7 +485,7 @@ class Renderer():
                               GL_FLOAT, 
                               False, 
                               12, 
-                              self.mfullScreenQuad)
+                              self.mFullScreenQuad)
                               
         glVertexAttribPointer(self.mCopyTextureCoordinateHandle, 
                               2, 
@@ -537,6 +553,11 @@ class Renderer():
             self.mWaveFactor -= 0.5
         if symbol == key.P:
             self.loadShaders()
+        if symbol == key.SPACE:
+            self.camEnable = not self.camEnable
+            self.window.set_exclusive_mouse(self.camEnable)
+            self.camera.setpos(0.0, 2.0, 0.0)
+            self.camera.orient(0.0, -90.0, 0.0, False)
     def isKeyPressed(self, symbol):
         if symbol in self.pressedKeys:
             return self.pressedKeys[symbol]
