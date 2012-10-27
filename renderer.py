@@ -250,11 +250,11 @@ class Renderer():
             self.camera.addAngularVelocity(0.0, 0.0, -0.1)
 
         """ Rendering code starts here """
-        if self.mBufferSelect and self.mRenderMode:
+        if self.mBufferSelect and not self.mRenderMode:
             self.renderToFBO(self.mFrameBufferAHandle, 
                         self.mTextureAHandle, 
                         self.mTextureBHandle)
-        elif self.mRenderMode:
+        elif not self.mRenderMode:
             self.renderToFBO(self.mFrameBufferBHandle, 
                         self.mTextureBHandle, 
                         self.mTextureAHandle)
@@ -314,7 +314,7 @@ class Renderer():
         glUniform2fv(self.mLightPosHandle, 1,(GLfloat*2)(self.mLightPos[0], self.mLightPos[1]))
         glUniform1f(self.mRenderModeUniformHandle, self.mRenderMode)
         
-        
+
         # Set animation timers
         glUniform1f(self.mTimerHandle, self.mTimer * 2 * pi)
         self.mOffset = [sin(2*pi*self.mOffsetTimer),cos(2*pi*self.mOffsetTimer)]
@@ -401,6 +401,8 @@ class Renderer():
         else:
             glUniform1i(self.mWaterFloodHandle, 0)
     
+
+        
         # Set up vertex attributes
         glVertexAttribPointer(self.mWaterPositionHandle, 
                               self.COORDS_PER_VERTEX, 
