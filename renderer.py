@@ -112,6 +112,16 @@ class Renderer():
             -1.0,   0.0,    1.0,
             -1.0,   0.0,   -1.0)
             
+        self.mfullScreenQuad = (GLfloat * 24)(
+            1.0,    -1.0,   0.0,
+            1.0,    1.0,    0.0,
+            -1.0,   1.0,    0.0,
+            -1.0,   -1.0,   0.0,
+            1.0,    -1.0,   0.0,
+            1.0,    1.0,    0.0,
+            -1.0,   1.0,    0.0,
+            -1.0,   -1.0,   0.0)
+            
         self.mGndIndices = (GLshort * 12)(
             0,  1,  2,
             2,  3,  0,
@@ -409,7 +419,7 @@ class Renderer():
                               GL_FLOAT, 
                               False, 
                               12, 
-                              self.mGndVertices)
+                              self.mfullScreenQuad)
                               
         glVertexAttribPointer(self.mWaterTextureCoordinateHandle, 
                               2, 
@@ -459,7 +469,7 @@ class Renderer():
                               GL_FLOAT, 
                               False, 
                               12, 
-                              self.mGndVertices)
+                              self.mfullScreenQuad)
                               
         glVertexAttribPointer(self.mCopyTextureCoordinateHandle, 
                               2, 
