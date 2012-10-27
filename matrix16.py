@@ -9,7 +9,7 @@ __contact__ = "www.bytebash.com"
 A simple 16-element Matrix class implementing functions required by a 
 free-look camera system.
 """
-from math import sqrt, tan
+from math import sqrt, tan, pi
 from ctypes import c_float
 from vector3 import Vector3
 
@@ -26,7 +26,6 @@ class Matrix16():
                 0.0, 0.0, 0.0, 1.0
             )
     def __repr__(self):
-        #return "Matrix16(" + str([str(c) for c in self.elements]) + ")"
         return "Matrix16(" + str(list(self.elements)) + ")"
     def __str__(self):
         return "Matrix16(" + str(list(self.elements)) + ")"
@@ -66,25 +65,40 @@ class Matrix16():
         else:
             # TODO: Add support for vector multiplication when needed
             return NotImplemented   
-    def col(self, i):
+    def col(self, i):    
         """ Return column i of the matrix """
         return([self.elements[i],    \
                 self.elements[i+4],  \
                 self.elements[i+8],  \
                 self.elements[i+12]])
+                
     def row(self, i):
         """ Return row i of the matrix """
         return([self.elements[(i*4)],    \
                 self.elements[(i*4)+1],  \
                 self.elements[(i*4)+2],  \
                 self.elements[(i*4)+3]])
+                
     @classmethod
     def perspective(self, vFOV, aspect, fzNear, fzFar):
-        f = 1/tan(vFOV/2.)
+        # f = 1/tan(vFOV*pi/360.)
+        # p = float(aspect)
+        # a = (fzFar+fzNear)/(fzNear-fzFar)
+        # b = (2*fzFar*fzNear)/(fzNear-fzFar)
+        # return Matrix16( f/p, 0.0, 0.0,  0.0, \
+                         # 0.0, f,   0.0,  0.0, \
+                         # 0.0, 0.0, a,    b,   \
+                         # 0.0, 0.0, -1.0, 0.0)
+                         
+                         
+                         
+        f = 1/tan(vFOV*pi/360.)
         p = float(aspect)
         a = (fzFar+fzNear)/(fzNear-fzFar)
         b = (2*fzFar*fzNear)/(fzNear-fzFar)
         return Matrix16( f/p, 0.0, 0.0,  0.0, \
                          0.0, f,   0.0,  0.0, \
-                         0.0, 0.0, a,    b,   \
-                         0.0, 0.0, -1.0, 0.0)
+                         0.0, 0.0, a,    -1.0,   \
+                         0.0, 0.0, b,    0.0)        
+                         
+                         

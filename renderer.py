@@ -160,8 +160,7 @@ class Renderer():
 
         self.mPositionHandle = glGetAttribLocation(self.mMainShader.id, "vPosition")
         self.mTextureCoordinateHandle = glGetAttribLocation(self.mMainShader.id, "vTexCoord")
-        self.mViewMatrixHandle = glGetUniformLocation(self.mMainShader.id, "modelViewMatrix")
-        self.mProjectionMatrixHandle = glGetUniformLocation(self.mMainShader.id, "projectionMatrix")
+        self.mMVPHandle = glGetUniformLocation(self.mMainShader.id, "MVP")
         self.mTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "texture")
         self.mBGTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "bgTexture")
         self.mRippleTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "ripples")
@@ -304,8 +303,7 @@ class Renderer():
         glUniform2fv(self.mOffsetHandle, 1, (GLfloat*2)(self.mOffset[0],self.mOffset[1]))
 
         # Camera control
-        glUniformMatrix4fv(self.mViewMatrixHandle, 1, False, self.camera.getModelView())
-        glUniformMatrix4fv(self.mProjectionMatrixHandle, 1, False, self.camera.getProjection())
+        glUniformMatrix4fv(self.mMVPHandle, 1, False, self.camera.getMVP())
 
         # Enable vertex attribute arrays
         glEnableVertexAttribArray(self.mPositionHandle)
@@ -505,11 +503,20 @@ class Renderer():
         if symbol == key.P:
             self.loadShaders()
             
-        if symbol == key.UP:
+        if symbol == key.W:
             self.camera.move(0.0, 0.0, 0.1)
-        if symbol == key.DOWN:
+        if symbol == key.S:
             self.camera.move(0.0, 0.0, -0.1)
+        if symbol == key.A:
+            self.camera.move(-0.1, 0.0, 0.0)
+        if symbol == key.D:
+            self.camera.move(0.1, 0.0, 0.01)
             
+        if symbol == key.Q:
+            self.camera.orient(0.0, 0.0, 15)
+        if symbol == key.E:
+            self.camera.orient(0.0, 0.0, -15)
+
         if symbol == key.SPACE:
             self.camera.setpos(0.0, 4.0, 4.0)
         
@@ -533,7 +540,7 @@ class Renderer():
         pass
     def on_mouse_motion(self, x, y, dx, dy):
         """ Handle mouse motion events """
-        self.camera.orient(dx, dy, 0.0)
+        self.camera.orient(-dx/2., dy/2., 0.0)
         (szx, szy) = self.window.get_size()
         self.mLightPos = [x/float(szx),
                           y/float(szy)]

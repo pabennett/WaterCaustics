@@ -16,7 +16,8 @@ from quaternion import *
 from matrix16 import *
 
 WORLD_XAXIS = Vector3(1.0, 0.0, 0.0)
-WORLD_YAXIS = Vector3(0.0, 1.0, 0.0)
+WORLD_YAXIS = Vector3(0.0, 1.0, 0.0) # World 'UP'
+WORLD_ZAXIS = Vector3(0.0, 0.0, 1.0) # World 'FORWARD'
 
 class Camera():
     def __init__(self, width, height, vFOV, fzNear, fzFar):
@@ -25,8 +26,10 @@ class Camera():
         width   : The width of the viewport
         height  : The height of the viewport
         vFOV    : The desired vertical field of view in degrees
-        fzNear  : The near clipping plane of the view frustrum in world units (Minimum view distance) 
-        fzFar   : The far clipping plane of the view frustrum in world units (Maximum view distance)
+        fzNear  : The near clipping plane of the view frustrum in world units 
+                  (Minimum view distance) 
+        fzFar   : The far clipping plane of the view frustrum in world units 
+                  (Maximum view distance)
         """
         
         # Parameters
@@ -38,9 +41,8 @@ class Camera():
         self.fzFar = fzFar
         self.flightMode = True
         
-        # Vectors and Quaternions
+        # Vectors
         self.position = Vector3(0.0, 0.0, 0.0)
-        self.orientation = Quaternion()
         self.xAxis = Vector3(1.0, 0.0, 0.0)
         self.yAxis = Vector3(0.0, 1.0, 0.0)
         self.zAxis = Vector3(0.0, 0.0, 1.0)
@@ -48,6 +50,9 @@ class Camera():
         self.forward = Vector3(0.0, 0.0, 0.0)
         self.moveVelocity = Vector3(0.0, 0.0, 0.0)
         self.angularVelocity = Vector3(0.0, 0.0, 0.0)
+        
+        # Quaternions
+        self.orientation = Quaternion()
         
         # Matrices
         self.projection = Matrix16.perspective(self.FOV, 
@@ -59,17 +64,14 @@ class Camera():
         
     def perspective(self, width, height, vFOV, fzNear, fzFar):
         """
-            * Update the projection matrix
-            * @param width
-            *    The width of the viewport, cannot be zero
-            * @param height
-            *    The height of the viewport, cannot be zero
-            * @param vFOV
-            *    The desired vertical field of view in degrees
-            * @param fzNear
-            *    The near clipping plane of the view frustrum in world units (Minimum view distance)
-            * @param fzFar
-            *    The far clipping plane of the view frustrum in world units (Maximum view distance)
+        Update the projection matrix
+        width   : The width of the viewport, cannot be zero
+        height  : The height of the viewport, cannot be zero
+        vFOV    : The desired vertical field of view in degrees
+        fzNear  : The near clipping plane of the view frustrum in world units 
+                  (Minimum view distance)
+        fzFar   : The far clipping plane of the view frustrum in world units
+                  (Maximum view distance)
         """
         
         if width <= 0 or height <= 0:
@@ -91,22 +93,17 @@ class Camera():
         self.MVP = self.projection * self.view
     def update(self, yaw, pitch, roll, dx, dy, dz, dt):
         """
-        * Update the camera velocity
-        * @param yaw
-        *    The angle in degrees by which the camera should rotate horizontally
-        * @param pitch
-        *    The angle in degrees by which the camera should rotate vertically
-        * @param roll
-        *    The angle in degrees by which the camera should rotate about its view axis  
-        * @param dx
-        *    The x axis delta
-        * @param dy
-        *    The y axis delta
-        * @param dz
-        *    The z axis delta    
-        * @param dt
-        *    Time delta since last call
-        */
+        Update the camera velocity
+        yaw     :   The angle in degrees by which the camera should rotate 
+                    horizontally
+        pitch   :   The angle in degrees by which the camera should rotate 
+                    vertically
+        roll    :   The angle in degrees by which the camera should rotate about
+                    its view axis  
+        dx      :   The x axis delta
+        dy      :   The y axis delta
+        dz      :   The z axis delta    
+        dt      :   Time delta since last call
         """
         dt = 0.03 if dt < 0.03 else dt
         dt = 1.0 if dt > 1.0 else dt
@@ -130,43 +127,51 @@ class Camera():
             self.moveVelocity += self.forward * dz
     def orient(self, yaw, pitch, roll):
         """
-        * Apply the given yaw, pitch and roll to the current camera orientation.
-        * @param yaw
-        *    The angle in degrees by which the camera should rotate horizontally
-        * @param pitch
-        *    The angle in degrees by which the camera should rotate vertically
-        * @param roll
-        *    The angle in degrees by which the camera should rotate about its view axis  
+        Apply the given yaw, pitch and roll to the current camera orientation.
+        yaw     :   The angle in degrees by which the camera should rotate
+                    horizontally
+        pitch   :   The angle in degrees by which the camera should rotate
+                    vertically
+        roll    :   The angle in degrees by which the camera should rotate about
+                    its view axis  
         """
         rotation = Quaternion()
         
-        ## Apply the y-axis delta to the quaternion.
-        ## Pitch causes the camera to rotate around the CAMERA's X-axis.
-        ## We need to right multiply the quaternions because the pitch
-        ## rotation is about the CAMERA X-Axis
+        """ 
+            Apply the y-axis delta to the quaternion.
+            Pitch causes the camera to rotate around the CAMERA's X-axis.
+            We need to right multiply the quaternions because the pitch
+            rotation is about the CAMERA X-Axis 
+        """
         if(pitch != 0):
             rotation.setRotationDeg(WORLD_XAXIS, pitch)
-            self.orientation = rotation * self.orientation
+            self.orientation = self.orientation * rotation
         
-        ## Apply the x-axis delta to the quaternion.
-        ## Yaw causes the camera to rotate around the WORLD's Y-axis.
-        ## We need to left multiply the quaternions because the yaw
-        ## rotation is about the WORLD Y-Axis.
+        """
+            Apply the x-axis delta to the quaternion.
+            Yaw causes the camera to rotate around the WORLD's Y-axis.
+            We need to left multiply the quaternions because the yaw
+            rotation is about the WORLD Y-Axis.
+        """
         if(yaw != 0):
             rotation.setRotationDeg(WORLD_YAXIS, yaw)
-            self.orientation *= rotation
+            self.orientation = rotation * self.orientation
         
-        ## Apply the z-axis delta to the quaternion.
-        ## Roll causes the camera to rotate around the camera's Z-axis
-        ## We need to right multiply the quaternions because the roll
-        ## rotation is about the CAMERA Z-Axis
+        """
+            Apply the z-axis delta to the quaternion.
+            Roll causes the camera to rotate around the camera's Z-axis
+            We need to right multiply the quaternions because the roll
+            rotation is about the CAMERA Z-Axis
+        """
         if(roll != 0):
-            if(mFlightMode):
-                rotation.setRotationDeg(self.flightForward, roll)
+            if(self.flightMode):
+                #rotation.setRotationDeg(self.flightForward, roll)
+                rotation.setRotationDeg(WORLD_ZAXIS, roll)
             else:
-                rotation.setRotationDeg(self.forward, roll)
-            self.orientaton = rotation * self.orientation
-
+                #rotation.setRotationDeg(self.forward, roll)
+                rotation.setRotationDeg(WORLD_ZAXIS, roll)
+            self.orientation = self.orientation * rotation
+            
         self.updateViewMatrix()
         
         
@@ -181,22 +186,23 @@ class Camera():
         *    The z axis delta    
         """
         if(self.flightMode):
-            ## This is flight mode so we need to move along the forward axis.
-            ## Move left or right along the camera's x-axis.
+            # This is flight mode so we need to move along the forward axis.
+            # Move left or right along the camera's x-axis.
             self.position += self.xAxis * dx
-            ## Move up or down along the world's y-axis.
+            # Move up or down along the world's y-axis.
             self.position += WORLD_YAXIS * dy
-            ## Move forward along the camera's z-axis.
+            # Move forward along the camera's z-axis.
             self.position += self.flightForward * dz
         else:
-            ## Determine the 'forwards' direction (where we are looking). If the camera
-            ## z-axis is used we will move slower forward as the camera tilts upwards, we
-            ## instead need to use the axis perpendicular to camera xaxis and world yaxis.
-            ## Move left or right along the camera's x-axis.
+            # Determine the 'forwards' direction (where we are looking). If the
+            # camera z-axis is used we will move slower forward as the camera
+            # tilts upwards, we instead need to use the axis perpendicular to
+            # camera xaxis and world yaxis.
+            # Move left or right along the camera's x-axis.
             self.position += self.xAxis * dx
-            ## Move up or down along the world's y-axis.
-            self.position += WORLD_YAXIS * dy
-            ## Move forward along the camera's z-axis.    
+            # Move up or down along the world's y-axis.
+            self.position += self.yAxis * dy
+            # Move forward along the camera's z-axis.    
             self.position += self.forward * dz
         self.positionUpdateViewMatrix()  
     def setpos(self, x, y, z):
@@ -209,61 +215,73 @@ class Camera():
         """
         Generate a view matrix from the camera orientation and position and 
         update the camera axis information.
-    
-        View Matrix Format:
-        0,0             0,3
-        +---+---+---+---+
-        | A | B | C | D | 
-        +---+---+---+---+
-        | E | F | G | H |
-        +---+---+---+---+
-        | I | J | K | L |
-        +---+---+---+---+
-        | M | N | O | P |
-        +---+---+---+---+
-        3,0             3,3
-                  +---+
-        XAXIS --> |ABC|                       +---+ 
-        YAXIS --> |EFG| = Scale and Rotation. |MNO| = Translation
-        ZAXIS --> |IJK|                       +---+
-                  +---+   
-    
-        M = -dot(XAXIS,eye), N = -dot(YAXIS,eye), O = -dot(ZAXIS,eye)
+            
+        OpenGL Matrix Format (Column Major):
+        
+        +-----+-----+-----+-----+
+        | m0  | m4  | m8  | m12 | 
+        +-----+-----+-----+-----+
+        | m1  | m5  | m9  | m13 |
+        +-----+-----+-----+-----+
+        | m2  | m6  | m10 | m14 |
+        +-----+-----+-----+-----+
+        | m3  | m7  | m11 | m15 |
+        +-----+-----+-----+-----+
+        
+        View Matrix Format (OpenGL column major notation):
+        
+        +-----+-----+-----+-----+    x = x-axis scale and rotation vector3
+        | x0  | y0  | z0  | 0   |    y = y-axis scale and rotation vector3
+        +-----+-----+-----+-----+    z = z-axis scale and rotation vector3
+        | x1  | y1  | z1  | 0   |    t = translation vector3
+        +-----+-----+-----+-----+
+        | x2  | y2  | z2  | 0   |     
+        +-----+-----+-----+-----+           
+        | t0  | t1  | t2  | 1   |            
+        +-----+-----+-----+-----+            
+                                         
+        t = Vector3(-dot(XAXIS,eye),-dot(YAXIS,eye),-dot(ZAXIS,eye))
+
         """
 
-        ## Reconstruct the view matrix.
+        # Reconstruct the view matrix.
         self.orientation.normalise()
-        # Use * prefix to pass list as args
-        self.view = Matrix16(*self.orientation.matrix())
-        
-        ## Load the axis vectors
+        self.view = self.orientation.matrix()
+                
+        # Load the axis vectors
         self.xAxis = Vector3(self.view[0], self.view[4], self.view[8])
         self.yAxis = Vector3(self.view[1], self.view[5], self.view[9])
         self.zAxis = Vector3(self.view[2], self.view[6], self.view[10])
         
-        ## Apply translation component.
-        self.view[12] = -self.xAxis.dot(self.position)
-        self.view[13] = -self.yAxis.dot(self.position)
-        self.view[14] = -self.zAxis.dot(self.position)
+        # Apply translation component.
+        self.view[12] = -(self.xAxis.dot(self.position))
+        self.view[13] = -(self.yAxis.dot(self.position))
+        self.view[14] = -(self.zAxis.dot(self.position))
+        
                 
-        ## Determine the 'forwards' direction (where we are looking).
+        # Determine the 'forwards' direction (where we are looking).
         self.flightForward = -self.zAxis
-        self.forward = WORLD_YAXIS.cross(self.xAxis).normalise()
+        self.forward = WORLD_YAXIS.cross(self.xAxis)
+        self.forward = self.forward.normalise()
         
-        ## Reconstruct the MVP matrix.
-        self.MVP = self.projection * self.view
+        # Reconstruct the MVP matrix.
+        # Projection is row major, view is row major
+        # OpenGL uses column major operator on left            Ie: P*V*M*V1 = V2
+        # This is the same as row major operator on the right. Ie: V1*M*V*P = V2
+        self.MVP = self.view * self.projection
         
+                           
     def positionUpdateViewMatrix(self):
         """
         Apply the current camera position to the view matrix. 
         Only use if there has been no change in orientation since the last update.
         """
-        ## Apply translation component.
-        self.view[12] = -self.xAxis.dot(self.position)
-        self.view[13] = -self.yAxis.dot(self.position)
-        self.view[14] = -self.zAxis.dot(self.position)
-        ## Reconstruct the MVP matrix.
-        self.MVP = self.projection * self.view
+        # Apply translation component.
+        self.view[12] = -(self.xAxis.dot(self.position))
+        self.view[13] = -(self.yAxis.dot(self.position))
+        self.view[14] = -(self.zAxis.dot(self.position))
+        # Reconstruct the MVP matrix.
+        self.MVP = self.view * self.projection
     def getInverseProjection(self):
         """
         Get the inverse projection matrix for converting from clip space back to
