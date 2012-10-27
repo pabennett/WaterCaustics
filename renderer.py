@@ -31,6 +31,7 @@ def frameBuffer(tex):
 
     status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)
     assert status == GL_FRAMEBUFFER_COMPLETE_EXT
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
     return fbo
 
 
@@ -247,17 +248,19 @@ class Renderer():
             self.camera.addAngularVelocity(0.0, 0.0, 0.1)
         if self.isKeyPressed(key.E):
             self.camera.addAngularVelocity(0.0, 0.0, -0.1)
-        
+
         """ Rendering code starts here """
-        if self.mBufferSelect:
+        if self.mBufferSelect and self.mRenderMode:
             self.renderToFBO(self.mFrameBufferAHandle, 
                         self.mTextureAHandle, 
                         self.mTextureBHandle)
-        else:
+        elif self.mRenderMode:
             self.renderToFBO(self.mFrameBufferBHandle, 
                         self.mTextureBHandle, 
                         self.mTextureAHandle)
         
+        
+
         glViewport(0, 0, self.width, self.height)
         # Clear screen
         glClear(GL_COLOR_BUFFER_BIT)
@@ -276,7 +279,6 @@ class Renderer():
         glBindTexture(GL_TEXTURE_2D, self.mEnvTextureHandle.id)
         # Tell the texture uniform sampler to use this texture by binding it to unit 1
         glUniform1i(self.mTextureUniformHandle, 1)
-        
         
         # Set texture register 0 as active
         glActiveTexture(GL_TEXTURE2)
@@ -336,8 +338,8 @@ class Renderer():
         glDisableVertexAttribArray(self.mPositionHandle)
         glDisableVertexAttribArray(self.mTextureCoordinateHandle)
         # Unbind shader
+        glActiveTexture(GL_TEXTURE0) # Reset the active texture
         glUseProgram(0)
-        
         # Update animation timers
         if self.mOffsetTimer >= 1.0:
             self.mOffsetTimer = 0.0
@@ -360,6 +362,7 @@ class Renderer():
         # First copy the timestep-2 (current buffer) texture to buffer C so that
         # it may be read by the shader as it writes to the current buffer.
         self.renderToCopy(textureHandleA)
+        
         # Bind FBO A/B to set Texture A/B as the output texture
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, frameBufferHandle)
             
@@ -425,8 +428,8 @@ class Renderer():
         glDisableVertexAttribArray(self.mPositionHandle)
         glDisableVertexAttribArray(self.mTextureCoordinateHandle)
         # Unbind shader and FBO
-        glUseProgram(0)                
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)             
+        glUseProgram(0)   
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)                          
     def renderToCopy(self, textureToCopy):
         # Bind FBO C to set Texture C as the output texture
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.mFrameBufferCHandle)
@@ -476,8 +479,7 @@ class Renderer():
         glDisableVertexAttribArray(self.mTextureCoordinateHandle)
         # Unbind shader and FBO
         glUseProgram(0)                
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
-                    
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)        
     def on_key_press(self, symbol, modifiers):
         """ Handle key press events"""
         
