@@ -261,9 +261,9 @@ class Renderer():
             if self.isKeyPressed(key.D):
                 self.camera.addVelocity(0.1, 0.0, 0.0)
             if self.isKeyPressed(key.Q):
-                self.camera.addAngularVelocity(0.0, 0.0, 0.1)
+                self.camera.addAngularVelocity(0.0, 0.0, 2)
             if self.isKeyPressed(key.E):
-                self.camera.addAngularVelocity(0.0, 0.0, -0.1)
+                self.camera.addAngularVelocity(0.0, 0.0, -2)
 
         """ Rendering code starts here """
         if self.mBufferSelect and not self.mRenderMode:
