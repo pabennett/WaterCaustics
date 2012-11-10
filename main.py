@@ -22,7 +22,6 @@ from gletools import ShaderProgram
 from math import *
 # Renderers:
 import renderer
-import ripples
 import camera
 import console
 
