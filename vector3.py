@@ -46,3 +46,34 @@ class Vector3():
         return Vector3(self.x / mag,self.y / mag,self.z / mag)
     def values(self):
         return [self.x, self.y, self.z]
+        
+class Vector2():
+    def __init__(self, x=0.0, y=0.0):
+        self.x = x
+        self.y = y
+    def __repr__(self):
+        return "Vector3(" + str(self.x) + "," + str(self.y) + ")"
+    def __str__(self):
+        return "Vector3(" + str(self.x) + "," + str(self.y) + ")"
+    def __mul__(self, f):
+        return Vector3(self.x * f,self.y * f)
+    def __div__(self, f):
+        return Vector3(self.x / f,self.y / f)
+    def __add__(self, other):
+        return Vector3(self.x + other.x,self.y + other.y)
+    def __sub__(self, other):
+        return Vector3(self.x - other.x,self.y - other.y)
+    def __neg__(self):
+        return Vector3(-self.x, -self.y)
+    def magnitude(self):
+        """ Calculate the magnitude of this vector. """
+        return sqrt(self.x*self.x + self.y*self.y)
+    def dot(self, other):
+        """ Calculate the dot product of this vector with the input vector. """
+        return ((self.x * other.x) + (self.y * other.y))
+    def normalise(self):
+        """ Return a copy of this vector as a unit vector. """
+        mag = self.magnitude()
+        return Vector3(self.x / mag,self.y / mag)
+    def values(self):
+        return [self.x, self.y]
