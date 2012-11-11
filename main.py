@@ -22,6 +22,7 @@ from gletools import ShaderProgram
 from math import *
 # Renderers:
 import renderer
+import water
 import camera
 import console
 
@@ -58,9 +59,7 @@ status.addParameter('Velocity')
                           
 camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
 
-renderer = renderer.Renderer(window, camera) 
-
-
+renderer = water.oceanRenderer(window, camera)
 
 def statusUpdates(dt):
     position = tuple(int(a) for a in camera.position.values())
