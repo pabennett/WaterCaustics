@@ -14,7 +14,7 @@ of water is generated.
 """ Simulator imports """
 from math import *
 from numpy import *
-from vector3 import Vector2
+from vector import Vector2
 
 g = 9.81    # Constant acceleration due to gravity
 
@@ -42,7 +42,6 @@ class Ocean():
         """
         temp = []
         spectrum = zeros((self.N * self.N, 4), dtype="u1") #RGBA bytes
-        print "Created spectrum texture size " + str(self.N) + " square."
         
         pmax = 0
         for m in range(self.N):
@@ -175,16 +174,14 @@ class oceanRenderer():
         Load the shaders
         Allow hotloading of shaders while the program is running
         """
-        self.mMainShader = ShaderProgram.open('shaders/passthru.shader')
+        self.mMainShader = ShaderProgram.open('shaders/passthru_jet.shader')
     def createImage(self):
         #data = array([1, 2, 3], dtype='u1')
         data = random.random_integers(low=0, high=1, size=(self.texWidth * self.texHeight, 4))
         data *= 255
 
         data = self.generator.dbg_phillipsArray()
-        
-        print "Generated spectrum..."
-        
+                
         # set the GB (from RGBA) to 0
         data[ :, 1:-1 ] = 0
         
@@ -193,13 +190,9 @@ class oceanRenderer():
 
         # we need to flatten the array
         data.shape = -1
-        
-        print "Flattened spectrum..."
-        
+                
         tex_data = (GLubyte * data.size)(*data.astype('u1'))
-        
-        print "Converted to texture..."
-        
+                
         im = image.ImageData(   self.texWidth,
                                 self.texHeight,
                                 "RGBA",

@@ -11,7 +11,7 @@ camera. Provides functions to allow the camera to be moved
 around a 3D scene.
 """
 
-from vector3 import *
+from vector import *
 from quaternion import *
 from matrix16 import *
 
