@@ -25,12 +25,13 @@ import renderer
 import water
 import camera
 import console
+import mesh
 
 # Global constants
 kScreenWidth = 864          # Window width
 kScreenHeight= 864          # Window height
 kFullScreenMode = False     # Fulscreen mode
-kMouseFocus = False         # Window holds mouse focus
+kMouseFocus = True          # Window holds mouse focus
 kDesiredFPS = 120           # Desired FPS (not guaranteed)
                             
 # Derived constants
@@ -73,16 +74,19 @@ def statusUpdates(dt):
 # Main Render Loop
 def on_draw(dt):
     window.clear()
-    renderer.draw(dt)
+    renderer.render(dt)
 
     # Show Console Data
-    status.draw()
+    #status.draw()
 
     
 # Initialisation
 if __name__ == '__main__':
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearColor(0.25, 0.75, 0.65,1.0);
     glViewport(0, 0, kScreenWidth, kScreenHeight)
+    glEnable(GL_CULL_FACE)
+    glEnable(GL_DEPTH_TEST)
+    glCullFace(GL_BACK)
     
 clock.schedule_interval(on_draw, kFPS)
 clock.schedule_interval(statusUpdates, 0.2)
