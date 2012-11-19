@@ -25,7 +25,6 @@ import renderer
 import water
 import camera
 import console
-import mesh
 
 # Global constants
 kScreenWidth = 864          # Window width
@@ -51,16 +50,15 @@ window.set_exclusive_mouse(kMouseFocus)
 status = console.StatusConsole(x=window.width * 0.005, 
                           y=window.height * 0.98,
                           width=window.width)
+                          
 status.setTitle('Information:')                          
 status.addParameter('FPS')      
 status.addParameter('Position')
 status.addParameter('Velocity')               
-                          
-                          
-                          
+                                           
 camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
 
-renderer = water.oceanRenderer(window, camera)
+renderer = water.oceanRenderer(window, camera, status)
 
 def statusUpdates(dt):
     position = tuple(int(a) for a in camera.position.values())
@@ -70,6 +68,8 @@ def statusUpdates(dt):
     status.setParameter('Position', position)
     status.setParameter('Velocity', velocity)
     status.setParameter('FPS', fps)
+    
+    renderer.statusUpdates(dt)
 
 # Main Render Loop
 def on_draw(dt):
@@ -77,7 +77,7 @@ def on_draw(dt):
     renderer.render(dt)
 
     # Show Console Data
-    #status.draw()
+    status.draw()
 
     
 # Initialisation
