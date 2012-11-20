@@ -74,10 +74,12 @@ class Ocean():
         # [[[v0x,v0y,v0z],[v1x,v1y,v1z],[v2x,v2y,v2z]],
         #  [[v3x,v3y,v3z],[v5x,v5y,v5z],[v5x,v5y,v5z]],
         #  [[v6x,v6y,v6z],[v7x,v7y,v7z],[v8x,v8y,v8z]]]
+        
         # When flattened, you get a packed vertex array: v0x,v0y,v0z,v1x,v1y....
         self.verts = np3DArray(0.0, 3, self.N+1, self.N+1, GLfloat)
         self.v0 = np3DArray(0.0, 3, self.N+1, self.N+1, GLfloat)
-                
+        self.indices = np.array(range(self.N1Sq*6),dtype=GLuint)
+        
         # Wave surface arrays
         self.hTilde0 = np2DArray(0.0+0j,self.N,self.N)      # Height @ t = 0
         self.hTilde0mk = np2DArray(0.0+0j,self.N,self.N)    # H conjugate @t = 0
@@ -92,8 +94,8 @@ class Ocean():
         self.kxLUT = np2DArray(0.0, self.N, self.N)         # kx Lookup
         self.kzLUT = np2DArray(0.0, self.N, self.N)         # kz Lookup
         self.lenLUT = np2DArray(0.0, self.N, self.N)        # Length Lookup
-             
-        # Generate initial vertex positions
+                             
+        # Generate initial vertex positions (N+1*N+1)
         for mPrime in range(self.N+1):
             for nPrime in range(self.N+1):
                 # Vertex X
@@ -113,9 +115,8 @@ class Ocean():
                 # Vertex Z
                 self.v0[mPrime][nPrime][2] = (mPrime - self.N / 2.0) * \
                                              self.length / float(self.N) 
-
-        
-        self.indices = []                                 
+                                             
+        # Build Lookup Tables and vertex indices list (N*N)        
         for mPrime in range(self.N):
             # Build k LUT for wave evaluation loop
             kz = pi * (2.0 * mPrime - self.N) / self.length
@@ -129,12 +130,12 @@ class Ocean():
             
                 # Generate Indices for drawing triangles
                 index = mPrime * (self.N + 1) + nPrime
-                self.indices.append(index)
-                self.indices.append(index + self.N + 1)
-                self.indices.append(index + self.N + 2)
-                self.indices.append(index)
-                self.indices.append(index + self.N + 2)
-                self.indices.append(index + 1)
+                self.indices[index*6] = index
+                self.indices[index*6+1] = index + self.N + 1
+                self.indices[index*6+2] = index + self.N + 2
+                self.indices[index*6+3] = index
+                self.indices[index*6+4] = index + self.N + 2
+                self.indices[index*6+5] = index + 1
                 
                 # Build a dispersion LUT
                 self.dispersionLUT[mPrime][nPrime] = self.dispersion(nPrime, mPrime) 
@@ -370,7 +371,7 @@ class oceanRenderer():
         glGenBuffers(1, pointer(self.vboVerts))
         glGenBuffers(1, pointer(self.vboIndices))
         
-        self.indices = (GLuint * len(self.generator.indices))(*self.generator.indices)
+        self.indices = np.ctypeslib.as_ctypes(self.generator.indices)
         
         # Vertices
         glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)      
@@ -379,7 +380,7 @@ class oceanRenderer():
         
         # Indices
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)      
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW)
         
         # Texture creation
         self.image = image.create(self.width, self.height)
@@ -429,15 +430,16 @@ class oceanRenderer():
     def updateWave(self):
         # Time=0 Wavemap generation
         self.generator.evaluateWavesFFT(self.time)
-        self.indices = (GLuint * len(self.generator.indices))(*self.generator.indices)
+        #self.indices = (GLuint * len(self.generator.indices))(*self.generator.indices)
         
         # Vertices
         glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)      
+        # 4 Bytes per float
         glBufferData(GL_ARRAY_BUFFER, self.generator.verts.size*4, np.ctypeslib.as_ctypes(self.generator.verts), GL_STATIC_DRAW)
-        
         # Indices
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)      
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)  
+        # 4 Bytes per uint
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW)
         
     def loadShaders(self):
         """ 
