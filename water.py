@@ -28,9 +28,12 @@ def np2DArray(initialiser, rows, columns):
     """ Utility Function for generating numpy arrays """
     return np.array([[initialiser for i in range(columns)] for j in range(rows)])        
 
-def np3DArray(initialiser, points, rows, columns):
+def np3DArray(initialiser, points, rows, columns, dtype=np.float64):
     """ Utility Function for generating numpy array of vertices """
-    return np.array([[[initialiser for i in range(points)] for j in range(columns)] for k in range(rows)])    
+    return np.array([[[initialiser for i in range(points)]  \
+                                   for j in range(columns)] \
+                                   for k in range(rows)], \
+                                   dtype=dtype)    
     
 class Ocean():
     def __init__(self, dimension=64, A=0.0005,w=Vector2(32.0, 32.0),length=64.0):
@@ -44,6 +47,9 @@ class Ocean():
         
         self.N1 = self.N+1              # Vertex grid has additional row and
                                         # column for tiling purposes
+                                        
+        self.NSq = self.N * self.N
+        self.N1Sq = self.N1 * self.N1
                                                                                 
         self.length = float(length)     # Length Parameter
         
@@ -68,8 +74,8 @@ class Ocean():
         #  [[v3x,v3y,v3z],[v5x,v5y,v5z],[v5x,v5y,v5z]],
         #  [[v6x,v6y,v6z],[v7x,v7y,v7z],[v8x,v8y,v8z]]]
         # When flattened, you get a packed vertex array: v0x,v0y,v0z,v1x,v1y....
-        self.verts = np3DArray(0.0, 3, self.N+1, self.N+1)
-        self.v0 = np3DArray(0.0, 3, self.N+1, self.N+1)
+        self.verts = np3DArray(0.0, 3, self.N+1, self.N+1, GLfloat)
+        self.v0 = np3DArray(0.0, 3, self.N+1, self.N+1, GLfloat)
                 
         # Wave surface arrays
         self.hTilde0 = np2DArray(0.0+0j,self.N,self.N)      # Height @ t = 0
@@ -309,8 +315,7 @@ class Ocean():
         self.updateVerts()
       
     def getGLVertices(self):
-        v = self.verts.flatten()
-        return (GLfloat * len(v))(*v)
+        return (GLfloat * self.verts.size)(*self.verts.flatten())
    
 class oceanRenderer():
     def __init__(self, window, camera, statusConsole):
@@ -336,18 +341,18 @@ class oceanRenderer():
         self.status.addParameter('Wave height')
 
         # Texture size
-        self.width = 64
-        self.height = 64
+        self.width = 32
+        self.height = 32
         
         self.length = 64.0
         self.time = 0.0
         
         # Ocean Parameters
-        self.oceanWindX = 32.0               # Ocean wind in X axis
-        self.oceanWindZ = 32.0               # Ocean wind in Z axis
-        self.oceanWaveHeight = 0.0005        # The phillips spectrum parameter
-        self.oceanTileSize = 64              # Must be a power of 2    
-        self.oceanLength = self.width        # Ocean length parameter
+        self.oceanWindX = 32.0                # Ocean wind in X axis
+        self.oceanWindZ = 32.0                # Ocean wind in Z axis
+        self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
+        self.oceanTileSize = 64               # Must be a power of 2    
+        self.oceanLength = 64                 # Ocean length parameter
         # Ocean Render Parameters
         self.oceanTilesX = 10
         self.oceanTilesZ = 10
