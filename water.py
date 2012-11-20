@@ -50,6 +50,7 @@ class Ocean():
                                         
         self.NSq = self.N * self.N
         self.N1Sq = self.N1 * self.N1
+        self.NVec = self.N1Sq * 3       # Number of floats for vector data
                                                                                 
         self.length = float(length)     # Length Parameter
         
@@ -313,10 +314,7 @@ class Ocean():
         self.doFFT()
         
         self.updateVerts()
-      
-    def getGLVertices(self):
-        return (GLfloat * self.verts.size)(*self.verts.flatten())
-   
+
 class oceanRenderer():
     def __init__(self, window, camera, statusConsole):
         """ Constructor """
@@ -372,12 +370,12 @@ class oceanRenderer():
         glGenBuffers(1, pointer(self.vboVerts))
         glGenBuffers(1, pointer(self.vboIndices))
         
-        self.vertices = self.generator.getGLVertices()
         self.indices = (GLuint * len(self.generator.indices))(*self.generator.indices)
         
         # Vertices
         glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)      
-        glBufferData(GL_ARRAY_BUFFER, sizeof(self.vertices), self.vertices, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.generator.verts.size*4, np.ctypeslib.as_ctypes(self.generator.verts), GL_STATIC_DRAW)
+
         
         # Indices
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)      
@@ -431,12 +429,11 @@ class oceanRenderer():
     def updateWave(self):
         # Time=0 Wavemap generation
         self.generator.evaluateWavesFFT(self.time)
-        self.vertices = self.generator.getGLVertices()
         self.indices = (GLuint * len(self.generator.indices))(*self.generator.indices)
         
         # Vertices
         glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)      
-        glBufferData(GL_ARRAY_BUFFER, sizeof(self.vertices), self.vertices, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.generator.verts.size*4, np.ctypeslib.as_ctypes(self.generator.verts), GL_STATIC_DRAW)
         
         # Indices
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)      
@@ -459,13 +456,13 @@ class oceanRenderer():
         self.camera.update(dt)
         
         if self.isKeyPressed(key.W):
-            self.camera.addVelocity(0.0, 0.0, 0.5)
+            self.camera.addVelocity(0.0, 0.0, 1.0)
         if self.isKeyPressed(key.S):
-            self.camera.addVelocity(0.0, 0.0, -0.5)
+            self.camera.addVelocity(0.0, 0.0, -1.0)
         if self.isKeyPressed(key.A):
-            self.camera.addVelocity(-0.5, 0.0, 0.0)
+            self.camera.addVelocity(-1.0, 0.0, 0.0)
         if self.isKeyPressed(key.D):
-            self.camera.addVelocity(0.5, 0.0, 0.0)
+            self.camera.addVelocity(1.0, 0.0, 0.0)
         if self.isKeyPressed(key.Q):
             self.camera.addAngularVelocity(0.0, 0.0, 2)
         if self.isKeyPressed(key.E):
