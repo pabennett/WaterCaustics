@@ -15,6 +15,7 @@ void main(){
 fragment:
 
 const float e = 2.71828182845904523536028747135266249;
+const vec4 skyColour = vec4(0.0, 0.49, 1.0, 1.0);
 
 varying float h;
 varying float fogFactor;
@@ -42,6 +43,5 @@ void main()
   vec4 outputColour = jet(abs(h/5));
   
   gl_FragColor = outputColour;
-  gl_FragColor = fog(gl_FragColor, vec4(0.25, 0.75, 0.65,1.0), fogFactor, 0.2);
-  //gl_FragColor = gl_FragColor * (1.0-fogFactor) + vec4(0.25, 0.75, 0.65, 1.0) * (fogFactor);
+  gl_FragColor = fog(gl_FragColor, skyColour, fogFactor, 0.2);
 }

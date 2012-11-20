@@ -82,7 +82,7 @@ def on_draw(dt):
     
 # Initialisation
 if __name__ == '__main__':
-    glClearColor(0.25, 0.75, 0.65,1.0);
+    glClearColor(0.0, 0.49, 1.0 ,1.0);
     glViewport(0, 0, kScreenWidth, kScreenHeight)
     glEnable(GL_CULL_FACE)
     glEnable(GL_DEPTH_TEST)
