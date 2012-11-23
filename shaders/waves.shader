@@ -1,15 +1,20 @@
 vertex:
 
 attribute vec4 vPosition;
+attribute vec4 vNormal;
 uniform mat4 MVP;
 uniform vec2 offset;
+
 varying float h;
 varying float fogFactor;
+varying vec4 normal;
 
 void main(){
 	gl_Position = MVP * (vPosition + vec4(offset.x, 0.0, offset.y, 0.0));
     fogFactor = min(-gl_Position.z/50.0, 1.0);
     h = vPosition.y;
+    vNormal.y = 0.0;
+    normal = normalize(vNormal);
 }
 
 fragment:
@@ -19,6 +24,7 @@ const vec4 skyColour = vec4(0.0, 0.49, 1.0, 1.0);
 
 varying float h;
 varying float fogFactor;
+varying vec4 normal;
 
 // Produce from the float input x (range 0.0 to 1.0) a vec4 colour using the
 // common 'Jet' colour mapping.
@@ -44,4 +50,6 @@ void main()
   
   gl_FragColor = outputColour;
   gl_FragColor = fog(gl_FragColor, skyColour, fogFactor, 0.2);
+  
+  gl_FragColor.a = 1.0;
 }

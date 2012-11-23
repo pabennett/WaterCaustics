@@ -79,7 +79,6 @@ def on_draw(dt):
     # Show Console Data
     status.draw()
 
-    
 # Initialisation
 if __name__ == '__main__':
     glClearColor(0.0, 0.49, 1.0 ,1.0);

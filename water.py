@@ -28,7 +28,7 @@ def np2DArray(initialiser, rows, columns):
     """ Utility Function for generating numpy arrays """
     return np.array([[initialiser for i in range(columns)] for j in range(rows)])        
 
-def np3DArray(initialiser, points, rows, columns, dtype=np.float64):
+def np3DArray(initialiser, points, rows, columns, dtype=np.float32):
     """ Utility Function for generating numpy array of vertices """
     return np.array([[[initialiser for i in range(points)]  \
                                    for j in range(columns)] \
@@ -71,16 +71,19 @@ class Ocean():
         """  
         # OpenGL structures      
         # Vertex arrays are 3-dimensional have have the following structure:
-        # [[[v0x,v0y,v0z],[v1x,v1y,v1z],[v2x,v2y,v2z]],
-        #  [[v3x,v3y,v3z],[v5x,v5y,v5z],[v5x,v5y,v5z]],
-        #  [[v6x,v6y,v6z],[v7x,v7y,v7z],[v8x,v8y,v8z]]]
+        # [[[v0x,v0y,v0z,n0x,n0y,n0z],[v1x,v1y,v1z,n1x,n1y,n1z]],
+        #  [[v2x,v2y,v2z,n2x,n2y,n2z],[v3x,v3y,v3z,n3x,n3y,n3z]],
+        #  [[v4x,v4y,v4z,n4x,n4y,n4z],[v5x,v5y,v5z,n5x,n5y,n5z]]]
+        self.verts = np3DArray(0.0, 6, self.N1, self.N1, GLfloat)
+        self.v0 = np3DArray(0.0, 6, self.N1, self.N1, GLfloat)
+        # Indicies are grouped per quad (6 indices for each quad)
+        # The wave mesh is composed of NxN quads
+        self.indices = np3DArray(0,6,self.N,self.N,dtype='u4')
         
-        # When flattened, you get a packed vertex array: v0x,v0y,v0z,v1x,v1y....
-        self.verts = np3DArray(0.0, 3, self.N+1, self.N+1, GLfloat)
-        self.v0 = np3DArray(0.0, 3, self.N+1, self.N+1, GLfloat)
-        self.indices = np.array(range(self.N1Sq*6),dtype=GLuint)
+        # Initialise the ocean surface mesh
+        self.build2DMesh()
         
-        # Wave surface arrays
+        # Wave surface property arrays (displacements, normals, etc)
         self.hTilde0 = np2DArray(0.0+0j,self.N,self.N)      # Height @ t = 0
         self.hTilde0mk = np2DArray(0.0+0j,self.N,self.N)    # H conjugate @t = 0
         self.hTilde = np2DArray(0.0+0j,self.N,self.N)       # Height @ t
@@ -94,55 +97,66 @@ class Ocean():
         self.kxLUT = np2DArray(0.0, self.N, self.N)         # kx Lookup
         self.kzLUT = np2DArray(0.0, self.N, self.N)         # kz Lookup
         self.lenLUT = np2DArray(0.0, self.N, self.N)        # Length Lookup
-                             
-        # Generate initial vertex positions (N+1*N+1)
+                                        
+        # Build Lookup Tables and vertex indices list (N*N)        
+        for i in range(self.N):
+            # Build k LUT for wave evaluation loop
+            kz = pi * (2.0 * i - self.N) / self.length
+            for j in range(self.N):
+                kx = pi * (2.0 * j - self.N) / self.length
+                # Generate index LUT
+                self.kxLUT[i][j] = kx
+                self.kzLUT[i][j] = kz
+                # Generate HTilde initial values
+                self.hTilde0[i][j] = self.getHTilde0(j, i)
+                self.hTilde0mk[i][j] = self.getHTilde0(-j, i)        
+                # Build a dispersion LUT
+                self.dispersionLUT[i][j] = self.dispersion(j, i) 
+                # Build a length LUT
+                self.lenLUT[i][j] = sqrt(kx * kx + kz * kz)
+                
+    def build2DMesh(self):
+        """
+        Generate the vertex and index arrays necessary to draw a wave surface
+        mesh of size N by N
+        An additional row and column are introduced in order to be able to stitch
+        ocean 'tiles' together seamlessly, so the final mesh dimensions are
+        N+1*N+1
+        """
+        
+        # Populate the index array
+        for i in range(self.N):
+            for j in range(self.N):
+                idx = i * self.N1 + j
+                self.indices[i][j][0] = idx
+                self.indices[i][j][1] = idx + self.N1
+                self.indices[i][j][2] = idx + 1
+                self.indices[i][j][3] = idx + 1
+                self.indices[i][j][4] = idx + self.N1
+                self.indices[i][j][5] = idx + self.N1 + 1
+                
+        # Populate the initial positions and normals
         for mPrime in range(self.N+1):
             for nPrime in range(self.N+1):
-                # Vertex X
+                # Position X
                 self.verts[mPrime][nPrime][0] = (nPrime - self.N / 2.0) * \
                                                 self.length / float(self.N)
-                # Vertex Y                        
+                # Position Y                        
                 self.verts[mPrime][nPrime][1] = 0.0
-                # Vertex Z
+                # Position Z
                 self.verts[mPrime][nPrime][2] = (mPrime - self.N / 2.0) * \
                                                 self.length / float(self.N) 
+                # # Normal X
+                self.verts[mPrime][nPrime][3] = 0.0
+                # # Normal Y                        
+                self.verts[mPrime][nPrime][4] = 1.0
+                # # Normal Z
+                self.verts[mPrime][nPrime][5] = 0.0 
                 
-                # Vertex X
-                self.v0[mPrime][nPrime][0] = (nPrime - self.N / 2.0) * \
-                                             self.length / float(self.N)
-                # Vertex Y                     
-                self.v0[mPrime][nPrime][1] = 0.0
-                # Vertex Z
-                self.v0[mPrime][nPrime][2] = (mPrime - self.N / 2.0) * \
-                                             self.length / float(self.N) 
-                                             
-        # Build Lookup Tables and vertex indices list (N*N)        
-        for mPrime in range(self.N):
-            # Build k LUT for wave evaluation loop
-            kz = pi * (2.0 * mPrime - self.N) / self.length
-            for nPrime in range(self.N):
-                kx = pi * (2.0 * nPrime - self.N) / self.length
-                self.kxLUT[mPrime][nPrime] = kx
-                self.kzLUT[mPrime][nPrime] = kz
-                # Generate HTilde initial values
-                self.hTilde0[mPrime][nPrime] = self.getHTilde0(nPrime, mPrime)
-                self.hTilde0mk[mPrime][nPrime] = self.getHTilde0(-nPrime, mPrime)
-            
-                # Generate Indices for drawing triangles
-                index = mPrime * (self.N + 1) + nPrime
-                self.indices[index*6] = index
-                self.indices[index*6+1] = index + self.N + 1
-                self.indices[index*6+2] = index + self.N + 2
-                self.indices[index*6+3] = index
-                self.indices[index*6+4] = index + self.N + 2
-                self.indices[index*6+5] = index + 1
-                
-                # Build a dispersion LUT
-                self.dispersionLUT[mPrime][nPrime] = self.dispersion(nPrime, mPrime) 
-                
-                # Build a length LUT
-                self.lenLUT[mPrime][nPrime] = sqrt(kx * kx + kz * kz)
-                     
+        # Keep a copy of the initial positions (future positions are generated
+        # by applying displacements to these initial positions)
+        self.v0 = self.verts.copy()
+
     def phillips(self, nPrime, mPrime):
         """
         The phillips spectrum
@@ -190,8 +204,7 @@ class Ocean():
         sin_ = sin(omegat)
         c0 = cos_ + (sin_ * 1j)
         c1 = cos_ + (-sin_ * 1j)
-        
-        
+
         return self.hTilde0[mPrime][nPrime] * c0 + self.hTilde0mk[mPrime][nPrime] * c1
           
     def genHTildeArray(self, t):
@@ -207,7 +220,6 @@ class Ocean():
         c1 = cos_ + (-sin_ * 1j)
     
         self.hTilde = self.hTilde0 * c0 + self.hTilde0mk * c1 
-     
 
     def genHTilde(self, t):
         """ 
@@ -258,6 +270,17 @@ class Ocean():
         ------------------------------------------------------------------------
         """
         
+        # Update Normals
+        self.hTildeSlopeX[::2,::2] = -self.hTildeSlopeX[::2,::2]
+        self.hTildeSlopeZ[::2,::2] = -self.hTildeSlopeZ[::2,::2]
+        self.hTildeSlopeX[1::2,1::2] = -self.hTildeSlopeX[1::2,1::2]
+        self.hTildeSlopeZ[1::2,1::2] = -self.hTildeSlopeZ[1::2,1::2]
+                                  
+        self.verts[:self.N:,:self.N:,3] = -self.hTildeSlopeX
+        self.verts[:self.N:,:self.N:,4] = 1.0
+        self.verts[:self.N:,:self.N:,5] = -self.hTildeSlopeZ
+        
+        # Update Displacements
         self.hTilde[::2,::2] = -self.hTilde[::2,::2]
         self.hTildeDx[::2,::2] = -self.hTildeDx[::2,::2]
         self.hTildeDz[::2,::2] = -self.hTildeDz[::2,::2]
@@ -265,8 +288,8 @@ class Ocean():
         self.hTilde[1::2,1::2] = -self.hTilde[1::2,1::2]
         self.hTildeDx[1::2,1::2] = -self.hTildeDx[1::2,1::2]
         self.hTildeDz[1::2,1::2] = -self.hTildeDz[1::2,1::2]
-           
-        #Update the vertex list for all elements in nonzero indices.
+                   
+        #Update the vertex list for all elements apart from max indices
         #Vertex X (Displacement)
         self.verts[:self.N:,:self.N:,0] = self.v0[:self.N:,:self.N:,0] + self.hTildeDx * -1
         # Vertex Y
@@ -286,6 +309,10 @@ class Ocean():
         # Vertex Z
         self.verts[self.N,self.N,2] = self.v0[self.N,self.N,2] + \
                                       self.hTildeDz[0,0] * -1
+                                      
+        self.verts[self.N,self.N,3] = -self.hTildeSlopeX[0,0]
+        self.verts[self.N,self.N,4] = 1.0
+        self.verts[self.N,self.N,5] = -self.hTildeSlopeZ[0,0]
         
         # Last row of vertices - Reference first row of the displacement array
         # vertices(N,[0..N]) = original(N,[0..N]) + hTilde(0,[0..N]) * -1
@@ -297,6 +324,10 @@ class Ocean():
         # Vertex Z
         self.verts[self.N,0:self.N:,2] = self.v0[self.N,0:self.N:,2] + \
                                          self.hTildeDz[0,0:self.N:] * -1
+                                         
+        self.verts[self.N,0:self.N:,3] = -self.hTildeSlopeX[0,0:self.N:]
+        self.verts[self.N,0:self.N:,4] = 1.0
+        self.verts[self.N,0:self.N:,5] = -self.hTildeSlopeZ[0,0:self.N:]
         
         # Last col of vertices - Reference first col of the displacement array
         # vertices([0..N],N) = original([0..N],N) + hTilde([0..N],0) * -1
@@ -308,12 +339,14 @@ class Ocean():
         # Vertex Z
         self.verts[0:self.N:,self.N,2] = self.v0[0:self.N:,self.N,2] + \
                                          self.hTildeDz[0:self.N:,0] * -1
+                                         
+        self.verts[0:self.N:,self.N,3] = -self.hTildeSlopeX[0:self.N:,0]
+        self.verts[0:self.N:,self.N,4] = 1.0
+        self.verts[0:self.N:,self.N,5] = -self.hTildeSlopeZ[0:self.N:,0]
+        
     def evaluateWavesFFT(self, t):
-    
         self.genHTilde(t)
-        
         self.doFFT()
-        
         self.updateVerts()
 
 class oceanRenderer():
@@ -339,11 +372,7 @@ class oceanRenderer():
         self.status.addParameter('Wind')      
         self.status.addParameter('Wave height')
 
-        # Texture size
-        self.width = 32
-        self.height = 32
-        
-        self.length = 64.0
+        # Animation Timer
         self.time = 0.0
         
         # Ocean Parameters
@@ -362,36 +391,10 @@ class oceanRenderer():
                                 self.oceanWaveHeight, 
                                 Vector2(self.oceanWindX,self.oceanWindZ),
                                 self.oceanLength)
-                                        
+                  
         self.enableUpdates = False
         
-        # Vertex Buffer Objects
-        self.vboVerts = GLuint()
-        self.vboIndices = GLuint()
-        glGenBuffers(1, pointer(self.vboVerts))
-        glGenBuffers(1, pointer(self.vboIndices))
         
-        self.indices = np.ctypeslib.as_ctypes(self.generator.indices)
-        
-        # Vertices
-        glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)      
-        glBufferData(GL_ARRAY_BUFFER, self.generator.verts.size*4, np.ctypeslib.as_ctypes(self.generator.verts), GL_STATIC_DRAW)
-
-        
-        # Indices
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)      
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW)
-        
-        # Texture creation
-        self.image = image.create(self.width, self.height)
-        self.mTextureHandle = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
-                                                        self.width, 
-                                                        self.height,
-                                                        GL_RGBA)
-                                                        
-        # Set up vertices
-        self.COORDS_PER_VERTEX = 3
-                                                        
         self.mMainShader = ShaderProgram.open('shaders/waves.shader')
         
         # Shader handles (main shader)
@@ -405,9 +408,44 @@ class oceanRenderer():
         self.mViewHandle = glGetUniformLocation(self.mMainShader.id, "view")
         self.mModelHandle = glGetUniformLocation(self.mMainShader.id, "model")
         self.mTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "texture")
+        
+        
+        # Vertex Array Object for Position and Normal VBOs
+        self.oceanVAO = GLuint()
+        glGenVertexArrays(1,pointer(self.oceanVAO))
+        glBindVertexArray(self.oceanVAO)
+        
+        # Vertex Buffer Objects (Positions Normals and Indices)
+        self.vertVBO = GLuint()
+        self.idxVBO = GLuint()
+        glGenBuffers(1, pointer(self.vertVBO))
+        glGenBuffers(1, pointer(self.idxVBO))
+                
+        self.indices = np.ctypeslib.as_ctypes(self.generator.indices)
+        self.verts = np.ctypeslib.as_ctypes(self.generator.verts)
+        
+        self.vertexCount = self.generator.indices.size
+        self.vertexSize = sizeof(GLfloat) * 6
+        self.offsetNormals = sizeof(GLfloat) * 3
+        
+        # Set up vertices VBO (associated with oceanVAO)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
+        glBufferData(GL_ARRAY_BUFFER, sizeof(self.verts), self.verts, GL_STATIC_DRAW)
+        # Positions
+        glEnableVertexAttribArray(self.positionHandle) 
+        glVertexAttribPointer(self.positionHandle, 3, GL_FLOAT, GL_FALSE, self.vertexSize, 0)
+        # Normals
+        glEnableVertexAttribArray(self.normalHandle) 
+        glVertexAttribPointer(self.normalHandle, 3, GL_FLOAT, GL_FALSE, self.vertexSize, self.offsetNormals)
+        
+        # Set up indices VBO (associated with oceanVAO)
+        # Indices
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.idxVBO)      
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW)
 
-         
-      
+        glBindVertexArray(0)
+                                
+        # Set up vertices
     def statusUpdates(self, dt):
         """
         Called periodically by main loop for onscreen text updates
@@ -429,17 +467,11 @@ class oceanRenderer():
 
     def updateWave(self):
         # Time=0 Wavemap generation
-        self.generator.evaluateWavesFFT(self.time)
-        #self.indices = (GLuint * len(self.generator.indices))(*self.generator.indices)
-        
-        # Vertices
-        glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)      
+        self.generator.evaluateWavesFFT(self.time)        
+        # Positions
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
         # 4 Bytes per float
         glBufferData(GL_ARRAY_BUFFER, self.generator.verts.size*4, np.ctypeslib.as_ctypes(self.generator.verts), GL_STATIC_DRAW)
-        # Indices
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)  
-        # 4 Bytes per uint
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW)
         
     def loadShaders(self):
         """ 
@@ -452,9 +484,33 @@ class oceanRenderer():
         
         self.time += dt
         
+        self.cameraUpdate(dt)
+        
         if self.enableUpdates:
             self.updateWave()
         # Camera control
+
+        
+        glUseProgram(self.mMainShader.id)             
+        glUniformMatrix4fv(self.mMVPHandle, 1, False, self.camera.getMVP()) 
+        
+        if self.wireframe:
+            glPolygonMode(GL_FRONT, GL_LINE)
+        else:
+            glPolygonMode(GL_FRONT, GL_FILL)
+
+            
+        glBindVertexArray(self.oceanVAO)
+        
+        for i in range(self.oceanTilesX):
+            for j in range(self.oceanTilesZ):
+                glUniform2fv(self.offsetHandle, 1, (GLfloat*2)(self.oceanLength * i, self.oceanLength * -j)) 
+                glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)
+                
+        glBindVertexArray(0)
+        glPolygonMode(GL_FRONT, GL_FILL)
+        glUseProgram(0)
+    def cameraUpdate(self, dt):
         self.camera.update(dt)
         
         if self.isKeyPressed(key.W):
@@ -469,32 +525,6 @@ class oceanRenderer():
             self.camera.addAngularVelocity(0.0, 0.0, 2)
         if self.isKeyPressed(key.E):
             self.camera.addAngularVelocity(0.0, 0.0, -2)
-        
-        glUseProgram(self.mMainShader.id)             
-        glUniformMatrix4fv(self.mMVPHandle, 1, False, self.camera.getMVP()) 
-        
-        if self.wireframe:
-            glPolygonMode(GL_FRONT, GL_LINE)
-        else:
-            glPolygonMode(GL_FRONT, GL_FILL)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.vboVerts)
-        glEnableVertexAttribArray(self.positionHandle)          
-        glVertexAttribPointer(self.positionHandle, 3, GL_FLOAT, GL_FALSE, 0, 0)
-        
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndices)
-        
-        for i in range(self.oceanTilesX):
-            for j in range(self.oceanTilesZ):
-                glUniform2fv(self.offsetHandle, 1, (GLfloat*2)(self.length * i, self.length * -j)) 
-                glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, 0)
-        
-        glDisableVertexAttribArray(self.positionHandle)
-        glPolygonMode(GL_FRONT, GL_FILL)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)  
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)  
-        glUseProgram(0)
-
     def on_key_press(self, symbol, modifiers):
         """ Handle key press events"""
         
