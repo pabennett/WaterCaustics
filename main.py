@@ -83,9 +83,9 @@ def on_draw(dt):
 if __name__ == '__main__':
     glClearColor(0.0, 0.49, 1.0 ,1.0);
     glViewport(0, 0, kScreenWidth, kScreenHeight)
-    glEnable(GL_CULL_FACE)
+    #glEnable(GL_CULL_FACE)
     glEnable(GL_DEPTH_TEST)
-    glCullFace(GL_BACK)
+    #glCullFace(GL_BACK)
     
 clock.schedule_interval(on_draw, kFPS)
 clock.schedule_interval(statusUpdates, 0.2)

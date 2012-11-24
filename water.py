@@ -14,7 +14,8 @@ of water is generated.
 """ Simulator imports """
 from math import *
 import numpy as np
-from vector import Vector2
+from vector import Vector2, Vector3
+from matrix16 import Matrix16
 
 """ Renderer Imports """
 from pyglet import *
@@ -34,7 +35,84 @@ def np3DArray(initialiser, points, rows, columns, dtype=np.float32):
                                    for j in range(columns)] \
                                    for k in range(rows)], \
                                    dtype=dtype)    
-    
+                                   
+                                   
+                                   
+class Mesh2DSurface():
+    def __init__(self, dimension=64, scale=1.0, offset=Vector3(0.0,0.0,0.0)):
+        """
+        Generate a 2D surface mesh with the given dimensions, scale and offset.
+        
+              1   2   3   4  
+            +---+---+---+---+   Size in Quads: NxN where N is the dimension
+          1 |   |   |   |   |   Quad size (world space) = scale
+            +---+---+---+---+   
+          2 |   |   |   |   |  
+            +---+---+---+---+       
+          3 |   |   |   |   |           
+            +---+---+---+---+       
+          4 |   |   |   |   |  
+            +---+---+---+---+     
+        """
+        """ 
+        ------------------------------------------------------------------------
+        Initialisation
+        ------------------------------------------------------------------------
+        """
+        self.N = dimension              # Dimension - should be power of 2
+        
+        self.N1 = self.N+1              # Vertex grid has additional row and
+                                        # column for tiling purposes
+                                        
+        self.offset = offset            # The offset in world units applies
+                                        # to each position of the mesh
+        self.scale = scale              # The size of each Quad in world space
+                                                                     
+        # Vertex arrays are 3-dimensional have have the following structure:
+        # [[[v0x,v0y,v0z,n0x,n0y,n0z],[v1x,v1y,v1z,n1x,n1y,n1z]],
+        #  [[v2x,v2y,v2z,n2x,n2y,n2z],[v3x,v3y,v3z,n3x,n3y,n3z]],
+        #  [[v4x,v4y,v4z,n4x,n4y,n4z],[v5x,v5y,v5z,n5x,n5y,n5z]]]
+        self.verts = np3DArray(0.0, 6, self.N1, self.N1, GLfloat)
+        # Indicies are grouped per quad (6 indices for each quad)
+        # The mesh is composed of NxN quads
+        self.indices = np3DArray(0,6,self.N,self.N,dtype='u4')
+        
+        # Initialise the surface mesh
+        self.build2DMesh()        
+        
+    def build2DMesh(self):
+        """
+        Generate the vertex and index arrays necessary to draw a surface
+        mesh of size N by N
+        """
+        
+        # Populate the index array
+        for i in range(self.N):
+            for j in range(self.N):
+                idx = i * self.N1 + j
+                self.indices[i][j][0] = idx
+                self.indices[i][j][1] = idx + self.N1
+                self.indices[i][j][2] = idx + 1
+                self.indices[i][j][3] = idx + 1
+                self.indices[i][j][4] = idx + self.N1
+                self.indices[i][j][5] = idx + self.N1 + 1
+                
+        # Populate the initial positions and normals
+        for mPrime in range(self.N+1):
+            for nPrime in range(self.N+1):
+                # Position X
+                self.verts[mPrime][nPrime][0] = (nPrime-self.N/2.0) * self.scale
+                # Position Y                        
+                self.verts[mPrime][nPrime][1] = 0.0
+                # Position Z
+                self.verts[mPrime][nPrime][2] = (mPrime-self.N/2.0) * self.scale
+                # # Normal X
+                self.verts[mPrime][nPrime][3] = 0.0
+                # # Normal Y                        
+                self.verts[mPrime][nPrime][4] = 1.0
+                # # Normal Z
+                self.verts[mPrime][nPrime][5] = 0.0 
+
 class Ocean():
     def __init__(self, dimension=64, A=0.0005,w=Vector2(32.0, 32.0),length=64.0):
 
@@ -64,24 +142,18 @@ class Ocean():
         self.g = 9.81                   # Constant acceleration due to gravity
                
 
-        """ 
-        ------------------------------------------------------------------------
-        Member Variables
-        ------------------------------------------------------------------------
-        """  
-        # OpenGL structures      
-        # Vertex arrays are 3-dimensional have have the following structure:
-        # [[[v0x,v0y,v0z,n0x,n0y,n0z],[v1x,v1y,v1z,n1x,n1y,n1z]],
-        #  [[v2x,v2y,v2z,n2x,n2y,n2z],[v3x,v3y,v3z,n3x,n3y,n3z]],
-        #  [[v4x,v4y,v4z,n4x,n4y,n4z],[v5x,v5y,v5z,n5x,n5y,n5z]]]
-        self.verts = np3DArray(0.0, 6, self.N1, self.N1, GLfloat)
-        self.v0 = np3DArray(0.0, 6, self.N1, self.N1, GLfloat)
-        # Indicies are grouped per quad (6 indices for each quad)
-        # The wave mesh is composed of NxN quads
-        self.indices = np3DArray(0,6,self.N,self.N,dtype='u4')
+        # A 2D plane composed of tiled Quads is used as the basis of an ocean
+        # surface mesh
+        self.surface = Mesh2DSurface(self.N, 
+                                     1.0, 
+                                     Vector3(0.0,0.0,0.0))
         
-        # Initialise the ocean surface mesh
-        self.build2DMesh()
+        # Directly access the positions, normals and indices of the mesh
+        self.verts = self.surface.verts
+        # Keep a copy of the initial positions (future positions can be
+        # generated by applying displacements to these initial positions)
+        self.v0 = self.verts.copy()
+        self.indices = self.surface.indices
         
         # Wave surface property arrays (displacements, normals, etc)
         self.hTilde0 = np2DArray(0.0+0j,self.N,self.N)      # Height @ t = 0
@@ -114,48 +186,6 @@ class Ocean():
                 self.dispersionLUT[i][j] = self.dispersion(j, i) 
                 # Build a length LUT
                 self.lenLUT[i][j] = sqrt(kx * kx + kz * kz)
-                
-    def build2DMesh(self):
-        """
-        Generate the vertex and index arrays necessary to draw a wave surface
-        mesh of size N by N
-        An additional row and column are introduced in order to be able to stitch
-        ocean 'tiles' together seamlessly, so the final mesh dimensions are
-        N+1*N+1
-        """
-        
-        # Populate the index array
-        for i in range(self.N):
-            for j in range(self.N):
-                idx = i * self.N1 + j
-                self.indices[i][j][0] = idx
-                self.indices[i][j][1] = idx + self.N1
-                self.indices[i][j][2] = idx + 1
-                self.indices[i][j][3] = idx + 1
-                self.indices[i][j][4] = idx + self.N1
-                self.indices[i][j][5] = idx + self.N1 + 1
-                
-        # Populate the initial positions and normals
-        for mPrime in range(self.N+1):
-            for nPrime in range(self.N+1):
-                # Position X
-                self.verts[mPrime][nPrime][0] = (nPrime - self.N / 2.0) * \
-                                                self.length / float(self.N)
-                # Position Y                        
-                self.verts[mPrime][nPrime][1] = 0.0
-                # Position Z
-                self.verts[mPrime][nPrime][2] = (mPrime - self.N / 2.0) * \
-                                                self.length / float(self.N) 
-                # # Normal X
-                self.verts[mPrime][nPrime][3] = 0.0
-                # # Normal Y                        
-                self.verts[mPrime][nPrime][4] = 1.0
-                # # Normal Z
-                self.verts[mPrime][nPrime][5] = 0.0 
-                
-        # Keep a copy of the initial positions (future positions are generated
-        # by applying displacements to these initial positions)
-        self.v0 = self.verts.copy()
 
     def phillips(self, nPrime, mPrime):
         """
@@ -349,6 +379,110 @@ class Ocean():
         self.doFFT()
         self.updateVerts()
 
+class OceanFloor():
+    def __init__(self,
+                 shaderProgram,
+                 camera,
+                 N=64, 
+                 scale=1.0, 
+                 offset=Vector3(0.0,0.0,0.0)):
+                 
+        self.N = N                      # N - should be power of 2
+        self.offset = offset            # World space offset
+        self.scale = scale              # Size of each quad in world space
+        self.shader = shaderProgram     # The GLSL shader program handle
+        self.camera = camera            # A camera object (provides MVP)
+        
+        # At a minimum the named attribues "vPosition, vNormal and vTexCoord
+        # are expected by this class.
+        # vPosition: vec4 position
+        # vNormal: vec4 normal
+        # vTexCoord: vec2 texture co-ordinate
+        # In addition to these attributes, the following matrices are expected:
+        # MVP: The modelview-projection matrix
+        # model: The model matrix
+        self.positionHandle = glGetAttribLocation(self.shader.id, "vPosition")
+        self.normalHandle = glGetAttribLocation(self.shader.id, "vNormal")
+        self.texCoordHandle = glGetAttribLocation(self.shader.id, "vTexCoord")
+        self.modelMatrixHandle = glGetUniformLocation(self.shader.id, "model")
+        self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
+        self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
+        self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
+        # A 2D plane composed of tiled Quads
+        self.surface = Mesh2DSurface(self.N, 
+                                     1.0, 
+                                     Vector3(0.0,0.0,0.0))
+        
+        # Directly access the positions, normals and indices of the mesh
+        self.verts = self.surface.verts
+        self.indices = self.surface.indices
+        self.vertexCount = self.indices.size
+        
+        self.modelMatrix = Matrix16()
+        self.modelMatrix[12] = self.offset.x
+        self.modelMatrix[13] = self.offset.y
+        self.modelMatrix[14] = self.offset.z
+        # Set up the VAO for rendering
+        self.setupVAO()
+        
+    def setupVAO(self):
+        # Vertex Array Object for Position and Normal VBOs
+        self.VAO = GLuint()
+        glGenVertexArrays(1,pointer(self.VAO))
+        glBindVertexArray(self.VAO)
+        
+        # Vertex Buffer Objects (Positions Normals and Indices)
+        self.vertVBO = GLuint()
+        self.indexVBO = GLuint()
+        glGenBuffers(1, pointer(self.vertVBO))
+        glGenBuffers(1, pointer(self.indexVBO))
+                
+        indicesGL = np.ctypeslib.as_ctypes(self.indices)
+        vertsGL = np.ctypeslib.as_ctypes(self.verts)
+        vertexSize = sizeof(GLfloat) * 6
+        offsetNormals = sizeof(GLfloat) * 3
+
+        # Set up vertices VBO (associated with VAO)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertsGL), vertsGL, GL_STATIC_DRAW)
+        # Positions
+        glEnableVertexAttribArray(self.positionHandle) 
+        glVertexAttribPointer(self.positionHandle, 3, GL_FLOAT, GL_FALSE, vertexSize, 0)
+        # Normals
+        glEnableVertexAttribArray(self.normalHandle) 
+        glVertexAttribPointer(self.normalHandle, 3, GL_FLOAT, GL_FALSE, vertexSize, offsetNormals)
+        
+        # Set up indices VBO (associated with VAO)
+        # Indices
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.indexVBO)      
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesGL), indicesGL, GL_STATIC_DRAW)
+
+        glBindVertexArray(0)
+    def draw(self, tilesX=1, tilesZ=1):
+        """
+        Draw this object.
+        Multiple copies of this object can be drawn by specifying a tilesX and
+        tilesZ value.
+        """
+        tilesX = 1 if tilesX < 1 else tilesX
+        tilesZ = 1 if tilesZ < 1 else tilesZ
+        
+        glUseProgram(self.shader.id)             
+        glUniformMatrix4fv(self.MVPMatrixHandle, 1, False, self.camera.getMVP()) 
+        glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
+        glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
+        glBindVertexArray(self.VAO)
+            
+        for i in range(tilesX):
+            self.modelMatrix[12] = self.offset.x + self.N * self.scale * i # Translate X
+            for j in range(tilesZ):
+                self.modelMatrix[14] = self.offset.z + self.N * self.scale * j # Translate Z
+                glUniformMatrix4fv(self.modelMatrixHandle, 1, False, self.modelMatrix.elements)
+                glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)        
+
+        glBindVertexArray(0)
+        glUseProgram(0)
+
 class oceanRenderer():
     def __init__(self, window, camera, statusConsole):
         """ Constructor """
@@ -386,16 +520,22 @@ class oceanRenderer():
         self.oceanTilesZ = 10
         self.wireframe = False
         
-        # Ocean Surface Generator
-        self.generator = Ocean( self.oceanTileSize,
+        # Ocean Surface generator
+        self.ocean = Ocean( self.oceanTileSize,
                                 self.oceanWaveHeight, 
                                 Vector2(self.oceanWindX,self.oceanWindZ),
                                 self.oceanLength)
                   
         self.enableUpdates = False
         
-        
         self.mMainShader = ShaderProgram.open('shaders/waves.shader')
+        
+        self.oceanFloor = OceanFloor(
+                            self.mMainShader,
+                            self.camera,
+                            self.oceanTileSize, 
+                            1.0, 
+                            Vector3(0.0,-30.0,0.0))
         
         # Shader handles (main shader)
         # Attributes
@@ -404,32 +544,38 @@ class oceanRenderer():
         self.texCoordHandle = glGetAttribLocation(self.mMainShader.id, "vTexCoord")
         # Uniforms
         self.offsetHandle = glGetUniformLocation(self.mMainShader.id, "offset")
-        self.mMVPHandle = glGetUniformLocation(self.mMainShader.id, "MVP")
-        self.mViewHandle = glGetUniformLocation(self.mMainShader.id, "view")
-        self.mModelHandle = glGetUniformLocation(self.mMainShader.id, "model")
+        self.modelMatrixHandle = glGetUniformLocation(self.mMainShader.id, "model")
+        self.viewMatrixHandle = glGetUniformLocation(self.mMainShader.id, "view")
+        self.projMatrixHandle = glGetUniformLocation(self.mMainShader.id, "projection")
+        self.MVPMatrixHandle = glGetUniformLocation(self.mMainShader.id, "MVP")
         self.mTextureUniformHandle = glGetUniformLocation(self.mMainShader.id, "texture")
-        
-        
+            
+        # Set up VAOs
+        self.vertexCount = self.ocean.indices.size
+        self.vertexSize = sizeof(GLfloat) * 6
+        self.offsetNormals = sizeof(GLfloat) * 3
+        self.initialiseOceanVAO()
+
+    def initialiseOceanVAO(self):
+        """
+        Perform setup and initial draw for Ocean surface VAO
+        """
         # Vertex Array Object for Position and Normal VBOs
         self.oceanVAO = GLuint()
         glGenVertexArrays(1,pointer(self.oceanVAO))
         glBindVertexArray(self.oceanVAO)
         
         # Vertex Buffer Objects (Positions Normals and Indices)
-        self.vertVBO = GLuint()
-        self.idxVBO = GLuint()
-        glGenBuffers(1, pointer(self.vertVBO))
-        glGenBuffers(1, pointer(self.idxVBO))
+        self.vertOceanVBO = GLuint()
+        self.idxOceanVBO = GLuint()
+        glGenBuffers(1, pointer(self.vertOceanVBO))
+        glGenBuffers(1, pointer(self.idxOceanVBO))
                 
-        self.indices = np.ctypeslib.as_ctypes(self.generator.indices)
-        self.verts = np.ctypeslib.as_ctypes(self.generator.verts)
-        
-        self.vertexCount = self.generator.indices.size
-        self.vertexSize = sizeof(GLfloat) * 6
-        self.offsetNormals = sizeof(GLfloat) * 3
-        
+        self.indices = np.ctypeslib.as_ctypes(self.ocean.indices)
+        self.verts = np.ctypeslib.as_ctypes(self.ocean.verts)
+
         # Set up vertices VBO (associated with oceanVAO)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertOceanVBO)      
         glBufferData(GL_ARRAY_BUFFER, sizeof(self.verts), self.verts, GL_STATIC_DRAW)
         # Positions
         glEnableVertexAttribArray(self.positionHandle) 
@@ -440,12 +586,12 @@ class oceanRenderer():
         
         # Set up indices VBO (associated with oceanVAO)
         # Indices
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.idxVBO)      
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.idxOceanVBO)      
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(self.indices), self.indices, GL_STATIC_DRAW)
 
         glBindVertexArray(0)
-                                
-        # Set up vertices
+        
+                        
     def statusUpdates(self, dt):
         """
         Called periodically by main loop for onscreen text updates
@@ -458,20 +604,20 @@ class oceanRenderer():
         """
         Recreate the ocean generator with new parameters
         """
-        del self.generator
+        del self.ocean
         
-        self.generator = Ocean( self.oceanTileSize,
+        self.ocean = Ocean( self.oceanTileSize,
                                 self.oceanWaveHeight, 
                                 Vector2(self.oceanWindX,self.oceanWindZ),
                                 self.oceanLength)
 
     def updateWave(self):
         # Time=0 Wavemap generation
-        self.generator.evaluateWavesFFT(self.time)        
+        self.ocean.evaluateWavesFFT(self.time)        
         # Positions
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertOceanVBO)      
         # 4 Bytes per float
-        glBufferData(GL_ARRAY_BUFFER, self.generator.verts.size*4, np.ctypeslib.as_ctypes(self.generator.verts), GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.ocean.verts.size*4, np.ctypeslib.as_ctypes(self.ocean.verts), GL_STATIC_DRAW)
         
     def loadShaders(self):
         """ 
@@ -488,11 +634,14 @@ class oceanRenderer():
         
         if self.enableUpdates:
             self.updateWave()
-        # Camera control
 
+        glUseProgram(self.mMainShader.id)  
+
+        modelMatrix = Matrix16()        
         
-        glUseProgram(self.mMainShader.id)             
-        glUniformMatrix4fv(self.mMVPHandle, 1, False, self.camera.getMVP()) 
+        glUniformMatrix4fv(self.MVPMatrixHandle, 1, False, self.camera.getMVP()) 
+        glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
+        glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
         
         if self.wireframe:
             glPolygonMode(GL_FRONT, GL_LINE)
@@ -501,13 +650,18 @@ class oceanRenderer():
 
             
         glBindVertexArray(self.oceanVAO)
-        
+                
         for i in range(self.oceanTilesX):
+            modelMatrix[12] = self.oceanLength * i # Translate X
             for j in range(self.oceanTilesZ):
-                glUniform2fv(self.offsetHandle, 1, (GLfloat*2)(self.oceanLength * i, self.oceanLength * -j)) 
-                glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)
+                modelMatrix[14] = self.oceanLength * j # Translate Z
+                glUniformMatrix4fv(self.modelMatrixHandle, 1, False, modelMatrix.elements)
+                glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)        
                 
         glBindVertexArray(0)
+        
+        self.oceanFloor.draw(self.oceanTilesX, self.oceanTilesZ)
+        
         glPolygonMode(GL_FRONT, GL_FILL)
         glUseProgram(0)
     def cameraUpdate(self, dt):
