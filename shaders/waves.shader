@@ -2,7 +2,13 @@ vertex:
 
 attribute vec4 vPosition;
 attribute vec4 vNormal;
+
 uniform mat4 MVP;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
 uniform vec2 offset;
 
 varying float h;
@@ -10,7 +16,8 @@ varying float fogFactor;
 varying vec4 normal;
 
 void main(){
-	gl_Position = MVP * (vPosition + vec4(offset.x, 0.0, offset.y, 0.0));
+    gl_Position = projection * view * model * vPosition;
+	//gl_Position = MVP * (vPosition + vec4(offset.x, 0.0, offset.y, 0.0));
     fogFactor = min(-gl_Position.z/50.0, 1.0);
     h = vPosition.y;
     vNormal.y = 0.0;
