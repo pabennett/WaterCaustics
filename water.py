@@ -38,78 +38,69 @@ def np3DArray(initialiser, points, rows, columns, dtype=np.float32):
                                    
                                    
                                    
-class Mesh2DSurface():
-    def __init__(self, dimension=64, scale=1.0):
-        """
-        Generate a 2D surface mesh with the given dimensions, scale and offset.
-        
-              1   2   3   4  
-            +---+---+---+---+   Size in Quads: NxN where N is the dimension
-          1 |   |   |   |   |   Quad size (world space) = scale
-            +---+---+---+---+   
-          2 |   |   |   |   |  
-            +---+---+---+---+       
-          3 |   |   |   |   |           
-            +---+---+---+---+       
-          4 |   |   |   |   |  
-            +---+---+---+---+     
-        """
-        """ 
-        ------------------------------------------------------------------------
-        Initialisation
-        ------------------------------------------------------------------------
-        """
-        self.N = dimension              # Dimension - should be power of 2
-        
-        self.N1 = self.N+1              # Vertex grid has additional row and
-                                        # column for tiling purposes
+def Mesh2DSurface(dimension=64, scale=1.0):
+    """
+    Generate a 2D surface mesh with the given dimensions, scale and offset.
 
-        self.scale = scale              # The size of each Quad in world space
-                                                                     
-        # Vertex arrays are 3-dimensional have have the following structure:
-        # [[[v0x,v0y,v0z,n0x,n0y,n0z],[v1x,v1y,v1z,n1x,n1y,n1z]],
-        #  [[v2x,v2y,v2z,n2x,n2y,n2z],[v3x,v3y,v3z,n3x,n3y,n3z]],
-        #  [[v4x,v4y,v4z,n4x,n4y,n4z],[v5x,v5y,v5z,n5x,n5y,n5z]]]
-        self.verts = np3DArray(0.0, 6, self.N1, self.N1, GLfloat)
-        # Indicies are grouped per quad (6 indices for each quad)
-        # The mesh is composed of NxN quads
-        self.indices = np3DArray(0,6,self.N,self.N,dtype='u4')
-        
-        # Initialise the surface mesh
-        self.build2DMesh()        
-        
-    def build2DMesh(self):
-        """
-        Generate the vertex and index arrays necessary to draw a surface
-        mesh of size N by N
-        """
-        
-        # Populate the index array
-        for i in range(self.N):
-            for j in range(self.N):
-                idx = i * self.N1 + j
-                self.indices[i][j][0] = idx
-                self.indices[i][j][1] = idx + self.N1
-                self.indices[i][j][2] = idx + 1
-                self.indices[i][j][3] = idx + 1
-                self.indices[i][j][4] = idx + self.N1
-                self.indices[i][j][5] = idx + self.N1 + 1
-                
-        # Populate the initial positions and normals
-        for mPrime in range(self.N+1):
-            for nPrime in range(self.N+1):
-                # Position X
-                self.verts[mPrime][nPrime][0] = (nPrime-self.N/2.0) * self.scale
-                # Position Y                        
-                self.verts[mPrime][nPrime][1] = 0.0
-                # Position Z
-                self.verts[mPrime][nPrime][2] = (mPrime-self.N/2.0) * self.scale
-                # # Normal X
-                self.verts[mPrime][nPrime][3] = 0.0
-                # # Normal Y                        
-                self.verts[mPrime][nPrime][4] = 1.0
-                # # Normal Z
-                self.verts[mPrime][nPrime][5] = 0.0 
+          1   2   3   4  
+        +---+---+---+---+   Size in Quads: NxN where N is the dimension
+      1 |   |   |   |   |   Quad size (world space) = scale
+        +---+---+---+---+   
+      2 |   |   |   |   |  
+        +---+---+---+---+       
+      3 |   |   |   |   |           
+        +---+---+---+---+       
+      4 |   |   |   |   |  
+        +---+---+---+---+     
+    """
+    """ 
+    ------------------------------------------------------------------------
+    Initialisation
+    ------------------------------------------------------------------------
+    """
+    N = dimension               # Dimension - should be power of 2
+
+    N1 = N+1                    # Vertex grid has additional row and
+                                # column for tiling purposes
+                                                                 
+    # Vertex arrays are 3-dimensional have have the following structure:
+    # [[[v0x,v0y,v0z,n0x,n0y,n0z],[v1x,v1y,v1z,n1x,n1y,n1z]],
+    #  [[v2x,v2y,v2z,n2x,n2y,n2z],[v3x,v3y,v3z,n3x,n3y,n3z]],
+    #  [[v4x,v4y,v4z,n4x,n4y,n4z],[v5x,v5y,v5z,n5x,n5y,n5z]]]
+    verts = np3DArray(0.0, 6, N1, N1, GLfloat)
+    # Indicies are grouped per quad (6 indices for each quad)
+    # The mesh is composed of NxN quads
+    indices = np3DArray(0,6,N,N,dtype='u4')
+    
+    # Initialise the surface mesh
+    # Populate the index array
+    for i in range(N):
+        for j in range(N):
+            idx = i * N1 + j
+            indices[i][j][0] = idx
+            indices[i][j][1] = idx + N1
+            indices[i][j][2] = idx + 1
+            indices[i][j][3] = idx + 1
+            indices[i][j][4] = idx + N1
+            indices[i][j][5] = idx + N1 + 1
+            
+    # Populate the initial positions and normals
+    for i in range(N+1):
+        for j in range(N+1):
+            # Position X
+            verts[i][j][0] = (j-N/2.0) * scale
+            # Position Y                        
+            verts[i][j][1] = 0.0
+            # Position Z
+            verts[i][j][2] = (i-N/2.0) * scale
+            # # Normal X
+            verts[i][j][3] = 0.0
+            # # Normal Y                        
+            verts[i][j][4] = 1.0
+            # # Normal Z
+            verts[i][j][5] = 0.0 
+            
+    return verts, indices
 
 class Heightfield():
     def __init__(self, dimension=64, A=0.0005,w=Vector2(32.0, 32.0),length=64.0):
@@ -397,15 +388,12 @@ class OceanSurface():
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
         self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
         
-        # A 2D plane composed of tiled Quads
-        self.surface = Mesh2DSurface(self.N, 1.0)
-        
+        # Generate a 2D plane composed of tiled Quads
         # Directly access the positions, normals and indices of the mesh
-        self.verts = self.surface.verts
+        self.verts, self.indices = Mesh2DSurface(self.N, 1.0)
         # Keep a copy of the original vertex positions and apply displacements
         # from the heightfield to them to produce new vertex positions
         self.v0 = self.verts.copy()
-        self.indices = self.surface.indices
         self.vertexCount = self.indices.size
         
         self.modelMatrix = Matrix16()
@@ -423,8 +411,8 @@ class OceanSurface():
         self.oceanWindX = 32.0                # Ocean wind in X axis
         self.oceanWindZ = 32.0                # Ocean wind in Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
-        self.oceanTileSize = 64               # Must be a power of 2    
-        self.oceanLength = 64                 # Ocean length parameter
+        self.oceanTileSize = N                # Must be a power of 2    
+        self.oceanLength = N                  # Ocean length parameter
         self.time = 0.0                       # Time parameter
         # Ocean Heightfield Generator
         self.heightfield = Heightfield(self.oceanTileSize,
@@ -539,12 +527,9 @@ class OceanFloor():
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
         self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
         
-        # A 2D plane composed of tiled Quads
-        self.surface = Mesh2DSurface(self.N, 1.0)
-        
+        # Generate a 2D plane composed of tiled Quads
+        self.verts, self.indices = Mesh2DSurface(self.N, 1.0)
         # Directly access the positions, normals and indices of the mesh
-        self.verts = self.surface.verts
-        self.indices = self.surface.indices
         self.vertexCount = self.indices.size
         
         self.modelMatrix = Matrix16()
