@@ -763,7 +763,11 @@ class oceanRenderer():
                 self.oceanSurface.draw(dt, self.oceanTilesX, self.oceanTilesZ)
             else:
                 self.oceanSurface.draw(0.0, self.oceanTilesX, self.oceanTilesZ)
-                
+        else:
+            if self.enableUpdates:
+                # Update the surface pattern but dont draw
+                self.oceanSurface.updateHeightfield(dt)
+            
         glUseProgram(self.oceanFloorShader.id)
         
         if self.drawFloor:

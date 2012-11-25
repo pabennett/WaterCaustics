@@ -27,7 +27,6 @@ void main(){
     gl_Position = view * model * vec4(vPosition,1.0);
     fogFactor = min(-gl_Position.z/100.0, 1.0);
     gl_Position = projection * gl_Position;
-
 	vec4 v = view * model * vec4(vPosition,1.0);
 	vec3 normal1 = normalize(vNormal);
     
@@ -113,31 +112,26 @@ void main()
 {
     vec4 fragColour;
 	vec3 normal1 = normalize(normal);
+    float depth1 = (depth + normal1.y) / 50.0;
 
-    vec4 waterColour = vec4(0.0, 0.49, 1.0 ,1.0);
-
-    float emissive_contribution = 0.00;
-    float ambient_contribution  = 0.30;
-    float diffuse_contribution  = 0.30;
-    float specular_contribution = 1.80;
-    
+    vec4 waterColour = vec4(0.0, 0.49, 1.0 ,1.0);    
 
     // Caustics
-    position = vec3(0.5,0.5,0.5);
-    vec3 intercept = line_plane_intercept(  position,
-                                            normal1.xyz, 
+    vec3 position1 = vec3(0.5,0.0,0.5);
+    vec3 intercept = line_plane_intercept(  position1,
+                                            vec3(normal1.x,-1.0,normal1.z), 
                                             vec3(0, 1, 0), 
-                                            -depth);
+                                            -depth1);
     
-    intercept.xz *= depth;
+    intercept.xz *= depth1;
     
     fragColour = texture2D(texture, texCoord);
-	fragColour = fragColour * (1.0-fogFactor) + vec4(0.0, 0.49, 1.0 ,1.0) * (fogFactor);
+	fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
     
     // Cheating caustics
     //fragColour += vec4(abs(normal1.x)/4.0 + abs(normal1.z)/4.0)  * (1.0-fogFactor);
     // Computed caustics
-    fragColour += texture2D(causticMap, intercept.xz * depth) * (1.0-fogFactor);
+    fragColour += texture2D(causticMap, intercept.xz) * (1.0-fogFactor);
     
 	fragColour.a = 1.0;
     gl_FragColor = fragColour;
