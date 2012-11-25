@@ -35,9 +35,7 @@ def np3DArray(initialiser, points, rows, columns, dtype=np.float32):
                                    for j in range(columns)] \
                                    for k in range(rows)], \
                                    dtype=dtype)    
-                                   
-                                   
-                                   
+                                                               
 def Mesh2DSurface(dimension=64, scale=1.0):
     """
     Generate a 2D surface mesh with the given dimensions, scale and offset.
@@ -67,7 +65,7 @@ def Mesh2DSurface(dimension=64, scale=1.0):
     # [[[v0x,v0y,v0z,n0x,n0y,n0z],[v1x,v1y,v1z,n1x,n1y,n1z]],
     #  [[v2x,v2y,v2z,n2x,n2y,n2z],[v3x,v3y,v3z,n3x,n3y,n3z]],
     #  [[v4x,v4y,v4z,n4x,n4y,n4z],[v5x,v5y,v5z,n5x,n5y,n5z]]]
-    verts = np3DArray(0.0, 6, N1, N1, GLfloat)
+    verts = np3DArray(0.0, 8, N1, N1, GLfloat)
     # Indicies are grouped per quad (6 indices for each quad)
     # The mesh is composed of NxN quads
     indices = np3DArray(0,6,N,N,dtype='u4')
@@ -99,6 +97,10 @@ def Mesh2DSurface(dimension=64, scale=1.0):
             verts[i][j][4] = 1.0
             # # Normal Z
             verts[i][j][5] = 0.0 
+            # # Texture X
+            verts[i][j][6] = i/float(N)
+            # # Texture Y                        
+            verts[i][j][7] = j/float(N)
             
     return verts, indices
 
@@ -371,7 +373,9 @@ class OceanSurface():
                  camera,
                  N=64, 
                  scale=1.0, 
-                 offset=Vector3(0.0,0.0,0.0)):
+                 offset=Vector3(0.0,0.0,0.0),
+                 wind=Vector2(0.0,0.0),
+                 height=0.0005):
                  
         self.N = N                      # N - should be power of 2
         self.offset = offset            # World space offset
@@ -387,7 +391,8 @@ class OceanSurface():
         self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
         self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
-        
+        self.enableTexture = glGetUniformLocation(self.shader.id, "texEnable")
+                
         # Generate a 2D plane composed of tiled Quads
         # Directly access the positions, normals and indices of the mesh
         self.verts, self.indices = Mesh2DSurface(self.N, 1.0)
@@ -408,16 +413,15 @@ class OceanSurface():
         # technique detailed in Tessendorf's "Simulating Ocean Water"
         
         # Ocean Parameters
-        self.oceanWindX = 32.0                # Ocean wind in X axis
-        self.oceanWindZ = 32.0                # Ocean wind in Z axis
-        self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
+        self.oceanWind = wind                 # Ocean wind in X,Z axis
+        self.oceanWaveHeight = height         # The phillips spectrum parameter
         self.oceanTileSize = N                # Must be a power of 2    
         self.oceanLength = N                  # Ocean length parameter
         self.time = 0.0                       # Time parameter
         # Ocean Heightfield Generator
         self.heightfield = Heightfield(self.oceanTileSize,
                                        self.oceanWaveHeight, 
-                                       Vector2(self.oceanWindX,self.oceanWindZ),
+                                       self.oceanWind,
                                        self.oceanLength)
 
     def setupVAO(self):
@@ -434,8 +438,9 @@ class OceanSurface():
                 
         indicesGL = np.ctypeslib.as_ctypes(self.indices)
         vertsGL = np.ctypeslib.as_ctypes(self.verts)
-        vertexSize = sizeof(GLfloat) * 6
+        vertexSize = sizeof(GLfloat) * 8
         offsetNormals = sizeof(GLfloat) * 3
+        offsetTexture = sizeof(GLfloat) * 6
 
         # Set up vertices VBO (associated with VAO)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
@@ -454,13 +459,12 @@ class OceanSurface():
 
         glBindVertexArray(0)
     def setHeightfieldParams(self, wind, waveHeight):
-        self.oceanWindX = wind.x
-        self.oceanWindZ = wind.y
+        self.oceanWind = wind
         self.oceanWaveHeight = waveHeight
         del self.heightfield
         self.heightfield = Heightfield(self.oceanTileSize,
                                        self.oceanWaveHeight, 
-                                       Vector2(self.oceanWindX,self.oceanWindZ),
+                                       self.oceanWind,
                                        self.oceanLength)
     def updateHeightfield(self, dt):
         if dt > 0.0:
@@ -490,8 +494,11 @@ class OceanSurface():
         glUniformMatrix4fv(self.MVPMatrixHandle, 1, False, self.camera.getMVP()) 
         glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
         glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
+                
+        glUniform1i(self.enableTexture, 0)
+        
         glBindVertexArray(self.VAO)
-            
+                    
         for i in range(tilesX):
             self.modelMatrix[12] = self.offset.x + self.N * self.scale * i # Translate X
             for j in range(tilesZ):
@@ -506,6 +513,7 @@ class OceanFloor():
     def __init__(self,
                  shaderProgram,
                  camera,
+                 texture,
                  N=64, 
                  scale=1.0, 
                  offset=Vector3(0.0,0.0,0.0)):
@@ -526,6 +534,10 @@ class OceanFloor():
         self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
         self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
+        self.textureHandle = glGetUniformLocation(self.shader.id, "texture")
+        self.enableTexture = glGetUniformLocation(self.shader.id, "texEnable")
+        
+        self.texture = texture
         
         # Generate a 2D plane composed of tiled Quads
         self.verts, self.indices = Mesh2DSurface(self.N, 1.0)
@@ -553,8 +565,9 @@ class OceanFloor():
                 
         indicesGL = np.ctypeslib.as_ctypes(self.indices)
         vertsGL = np.ctypeslib.as_ctypes(self.verts)
-        vertexSize = sizeof(GLfloat) * 6
+        vertexSize = sizeof(GLfloat) * 8
         offsetNormals = sizeof(GLfloat) * 3
+        offsetTexture = sizeof(GLfloat) * 6
 
         # Set up vertices VBO (associated with VAO)
         glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
@@ -565,6 +578,9 @@ class OceanFloor():
         # Normals
         glEnableVertexAttribArray(self.normalHandle) 
         glVertexAttribPointer(self.normalHandle, 3, GL_FLOAT, GL_FALSE, vertexSize, offsetNormals)
+        # TexCoords
+        glEnableVertexAttribArray(self.texCoordHandle) 
+        glVertexAttribPointer(self.texCoordHandle, 2, GL_FLOAT, GL_FALSE, vertexSize, offsetTexture)
         
         # Set up indices VBO (associated with VAO)
         # Indices
@@ -585,6 +601,12 @@ class OceanFloor():
         glUniformMatrix4fv(self.MVPMatrixHandle, 1, False, self.camera.getMVP()) 
         glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
         glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
+        
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, self.texture.id)
+        glUniform1i(self.textureHandle, 0)
+        glUniform1i(self.enableTexture, 1)
+        
         glBindVertexArray(self.VAO)
             
         for i in range(tilesX):
@@ -625,18 +647,20 @@ class oceanRenderer():
         self.wireframe = False
         self.enableUpdates = False
         # Ocean Parameters
-        self.oceanWindX = 32.0                # Ocean wind in X axis
-        self.oceanWindZ = 32.0                # Ocean wind in Z axis
+        self.oceanWind = Vector2(32.0,32.0)   # Ocean wind in X,Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
         self.oceanTileSize = 64               # Must be a power of 2    
         self.oceanLength = 64                 # Ocean length parameter
         self.oceanDepth = 30.0
         # OpenGL Shader
         self.mMainShader = ShaderProgram.open('shaders/waves.shader')
+        # Textures
+        self.oceanFloorTexture = pyglet.image.load('images/sand.png').get_texture() 
         # Ocean Floor Renderable
         self.oceanFloor = OceanFloor(
                             self.mMainShader,
                             self.camera,
+                            self.oceanFloorTexture,
                             self.oceanTileSize, 
                             1.0, 
                             Vector3(0.0,0.0,0.0))             
@@ -646,20 +670,22 @@ class oceanRenderer():
                             self.camera,
                             self.oceanTileSize, 
                             1.0, 
-                            Vector3(0.0,self.oceanDepth,0.0)) 
+                            Vector3(0.0,self.oceanDepth,0.0),
+                            self.oceanWind,
+                            self.oceanWaveHeight)
+                            
     def statusUpdates(self, dt):
         """
         Called periodically by main loop for onscreen text updates
         """
-        wind = (self.oceanWindX,self.oceanWindZ)
-        self.status.setParameter('Wind', wind)
+        self.status.setParameter('Wind', self.oceanWind)
         self.status.setParameter('Wave height', self.oceanWaveHeight)
     def resetOcean(self):
         """
         Recreate the ocean generator with new parameters
         """                                
         self.oceanSurface.setHeightfieldParams(
-                                      Vector2(self.oceanWindX,self.oceanWindZ),
+                                      self.oceanWind,
                                       self.oceanWaveHeight)
     def loadShaders(self):
         """ 
@@ -721,16 +747,16 @@ class oceanRenderer():
             self.enableUpdates = not self.enableUpdates
    
         if symbol == key.NUM_1:
-            self.oceanWindX *= 2.0
+            self.oceanWind.x *= 2.0
             self.resetOcean()
         if symbol == key.NUM_2:
-            self.oceanWindX /= 2.0
+            self.oceanWind.x /= 2.0
             self.resetOcean()
         if symbol == key.NUM_4:
-            self.oceanWindZ *= 2.0
+            self.oceanWind.y *= 2.0
             self.resetOcean()
         if symbol == key.NUM_5:
-            self.oceanWindZ /= 2.0
+            self.oceanWind.y /= 2.0
             self.resetOcean()
         if symbol == key.NUM_7:
             self.oceanWaveHeight *= 2.0
