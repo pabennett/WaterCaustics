@@ -256,7 +256,7 @@ class Heightfield():
         self.hTildeDz = self.hTilde * 1j * -self.kzLUT / self.lenLUT
         self.hTildeDx[zeros] = 0.0+0j
         self.hTildeDz[zeros] = 0.0+0j
-        
+
     def doFFT(self):
         """ 
         ------------------------------------------------------------------------
@@ -269,6 +269,9 @@ class Heightfield():
         # Displacements
         self.hTildeDx = np.fft.fft2(self.hTildeDx)
         self.hTildeDz = np.fft.fft2(self.hTildeDz)
+        # Normals
+        self.hTildeSlopeX = np.fft.fft2(self.hTildeSlopeX)
+        self.hTildeSlopeZ = np.fft.fft2(self.hTildeSlopeZ)
          
     def updateVerts(self, t, verts, v0):
         """
@@ -287,77 +290,66 @@ class Heightfield():
         
         # First, do a surface update
         self.evaluateWavesFFT(t)
-        
-        # Update Normals
+
+        # Apply -1**x, -1**z factors
         self.hTildeSlopeX[::2,::2] = -self.hTildeSlopeX[::2,::2]
         self.hTildeSlopeZ[::2,::2] = -self.hTildeSlopeZ[::2,::2]
         self.hTildeSlopeX[1::2,1::2] = -self.hTildeSlopeX[1::2,1::2]
         self.hTildeSlopeZ[1::2,1::2] = -self.hTildeSlopeZ[1::2,1::2]
-                                  
-        verts[:self.N:,:self.N:,3] = -self.hTildeSlopeX
-        verts[:self.N:,:self.N:,4] = 1.0
-        verts[:self.N:,:self.N:,5] = -self.hTildeSlopeZ
-        
-        # Update Displacements
         self.hTilde[::2,::2] = -self.hTilde[::2,::2]
         self.hTildeDx[::2,::2] = -self.hTildeDx[::2,::2]
         self.hTildeDz[::2,::2] = -self.hTildeDz[::2,::2]
-          
         self.hTilde[1::2,1::2] = -self.hTilde[1::2,1::2]
         self.hTildeDx[1::2,1::2] = -self.hTildeDx[1::2,1::2]
         self.hTildeDz[1::2,1::2] = -self.hTildeDz[1::2,1::2]
                    
-        #Update the vertex list for all elements apart from max indices
-        #Vertex X (Displacement)
+        # Update the vertex list for all elements apart from max indices
+        # Position X,Y,Z
         verts[:self.N:,:self.N:,0] = v0[:self.N:,:self.N:,0] + self.hTildeDx * -1
-        # Vertex Y
         verts[:self.N:,:self.N:,1] = self.hTilde
-        # Vertex Z (Displacement)
         verts[:self.N:,:self.N:,2] = v0[:self.N:,:self.N:,2]  + self.hTildeDz * -1
+        # Normal X,Y,Z
+        verts[:self.N:,:self.N:,3] = -self.hTildeSlopeX
+        verts[:self.N:,:self.N:,4] = 1.0
+        verts[:self.N:,:self.N:,5] = -self.hTildeSlopeZ
         
-        # # Allow seamless tiling:
+        # Allow seamless tiling:
 
         # Top index of vertices - reference bottom index of displacement array
         # vertices(N,N) = original(N,N) + hTilde(0,0) * - 1
-        # Vertex X  
+        # Position X,Y,Z
         verts[self.N,self.N,0] = v0[self.N,self.N,0] + \
-                                      self.hTildeDx[0,0] * -1
-        # Vertex Y                           
+                                      self.hTildeDx[0,0] * -1                         
         verts[self.N,self.N,1] = self.hTilde[0,0]
-        # Vertex Z
         verts[self.N,self.N,2] = v0[self.N,self.N,2] + \
                                       self.hTildeDz[0,0] * -1
-                                      
+        # Normal X,Y,Z                    
         verts[self.N,self.N,3] = -self.hTildeSlopeX[0,0]
         verts[self.N,self.N,4] = 1.0
         verts[self.N,self.N,5] = -self.hTildeSlopeZ[0,0]
         
         # Last row of vertices - Reference first row of the displacement array
         # vertices(N,[0..N]) = original(N,[0..N]) + hTilde(0,[0..N]) * -1
-        # Vertex X  
+        # Position X,Y,Z
         verts[self.N,0:self.N:,0] = v0[self.N,0:self.N:,0] + \
-                                         self.hTildeDx[0,0:self.N:] * -1
-        # Vertex Y                            
+                                         self.hTildeDx[0,0:self.N:] * -1                        
         verts[self.N,0:self.N:,1] = self.hTilde[0,0:self.N:]
-        # Vertex Z
         verts[self.N,0:self.N:,2] = v0[self.N,0:self.N:,2] + \
                                          self.hTildeDz[0,0:self.N:] * -1
-                                         
+        # Normal X,Y,Z                          
         verts[self.N,0:self.N:,3] = -self.hTildeSlopeX[0,0:self.N:]
         verts[self.N,0:self.N:,4] = 1.0
         verts[self.N,0:self.N:,5] = -self.hTildeSlopeZ[0,0:self.N:]
         
         # Last col of vertices - Reference first col of the displacement array
         # vertices([0..N],N) = original([0..N],N) + hTilde([0..N],0) * -1
-        # Vertex X  
+        # Position X,Y,Z
         verts[0:self.N:,self.N,0] = v0[0:self.N:,self.N,0] + \
-                                         self.hTildeDx[0:self.N:,0] * -1
-        # Vertex Y    
+                                         self.hTildeDx[0:self.N:,0] * -1 
         verts[0:self.N:,self.N,1] = self.hTilde[0:self.N:,0]
-        # Vertex Z
         verts[0:self.N:,self.N,2] = v0[0:self.N:,self.N,2] + \
                                          self.hTildeDz[0:self.N:,0] * -1
-                                         
+        # Normal X,Y,Z                          
         verts[0:self.N:,self.N,3] = -self.hTildeSlopeX[0:self.N:,0]
         verts[0:self.N:,self.N,4] = 1.0
         verts[0:self.N:,self.N,5] = -self.hTildeSlopeZ[0:self.N:,0]
@@ -390,7 +382,6 @@ class OceanSurface():
         self.modelMatrixHandle = glGetUniformLocation(self.shader.id, "model")
         self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
-        self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
         self.enableTexture = glGetUniformLocation(self.shader.id, "texEnable")
                 
         # Generate a 2D plane composed of tiled Quads
@@ -458,6 +449,8 @@ class OceanSurface():
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesGL), indicesGL, GL_STATIC_DRAW)
 
         glBindVertexArray(0)
+    def setDepth(self, depth):
+        self.offset.y = depth
     def setHeightfieldParams(self, wind, waveHeight):
         self.oceanWind = wind
         self.oceanWaveHeight = waveHeight
@@ -491,13 +484,14 @@ class OceanSurface():
         self.updateHeightfield(dt)
         
         glUseProgram(self.shader.id)             
-        glUniformMatrix4fv(self.MVPMatrixHandle, 1, False, self.camera.getMVP()) 
         glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
         glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
                 
         glUniform1i(self.enableTexture, 0)
         
         glBindVertexArray(self.VAO)
+        
+        self.modelMatrix[13] = self.offset.y        # Translate Y 
                     
         for i in range(tilesX):
             self.modelMatrix[12] = self.offset.x + self.N * self.scale * i # Translate X
@@ -514,6 +508,9 @@ class OceanFloor():
                  shaderProgram,
                  camera,
                  texture,
+                 causticMapTexture,
+                 oceanSurface,
+                 oceanDepth,
                  N=64, 
                  scale=1.0, 
                  offset=Vector3(0.0,0.0,0.0)):
@@ -523,6 +520,9 @@ class OceanFloor():
         self.scale = scale              # Size of each quad in world space
         self.shader = shaderProgram     # The GLSL shader program handle
         self.camera = camera            # A camera object (provides MVP)
+        self.surface = oceanSurface     # Maintain a reference to the ocean
+                                        # surface
+        self.oceanDepth = oceanDepth    # Ocean depth                                        
         
         self.camera.setpos(-10.0, 2.0, -10.0)
         
@@ -533,11 +533,15 @@ class OceanFloor():
         self.modelMatrixHandle = glGetUniformLocation(self.shader.id, "model")
         self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
-        self.MVPMatrixHandle = glGetUniformLocation(self.shader.id, "MVP")
         self.textureHandle = glGetUniformLocation(self.shader.id, "texture")
-        self.enableTexture = glGetUniformLocation(self.shader.id, "texEnable")
+        self.causticMapHandle = glGetUniformLocation(self.shader.id, "causticMap")
+        self.oceanDepthHandle = glGetUniformLocation(self.shader.id, "depth")
         
         self.texture = texture
+        self.causticTexture = causticMapTexture
+        
+        glTexParameteri(self.causticTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(self.causticTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         
         # Generate a 2D plane composed of tiled Quads
         self.verts, self.indices = Mesh2DSurface(self.N, 1.0)
@@ -550,7 +554,29 @@ class OceanFloor():
         self.modelMatrix[14] = self.offset.z
         # Set up the VAO for rendering
         self.setupVAO()
+    def setDepth(self, depth):
+        self.oceanDepth = depth    
+    def updateCaustics(self, dt):
+        """
+        Get the update normal map from the ocean surface and use it to generate
+        a new caustic pattern on the ocean floor
+        """
         
+        # Update the normals from the ocean surface (Y doesnt change)
+        self.verts[::,::,3] = self.surface.verts[::,::,3]
+        self.verts[::,::,4] = self.surface.verts[::,::,1]
+        self.verts[::,::,5] = self.surface.verts[::,::,5]
+
+        
+        # Update the vertex VBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)
+        
+        glBufferData(GL_ARRAY_BUFFER, 
+                     self.verts.size*4, 
+                     np.ctypeslib.as_ctypes(self.verts),
+                     GL_STATIC_DRAW)
+
+    
     def setupVAO(self):
         # Vertex Array Object for Position and Normal VBOs
         self.VAO = GLuint()
@@ -597,16 +623,20 @@ class OceanFloor():
         tilesX = 1 if tilesX < 1 else tilesX
         tilesZ = 1 if tilesZ < 1 else tilesZ
         
+        self.updateCaustics(dt)
+        
         glUseProgram(self.shader.id)             
-        glUniformMatrix4fv(self.MVPMatrixHandle, 1, False, self.camera.getMVP()) 
         glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
         glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
+        glUniform1f(self.oceanDepthHandle, self.oceanDepth)
         
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.texture.id)
         glUniform1i(self.textureHandle, 0)
-        glUniform1i(self.enableTexture, 1)
-        
+        glActiveTexture(GL_TEXTURE1)
+        glBindTexture(GL_TEXTURE_2D, self.causticTexture.id)
+        glUniform1i(self.causticMapHandle, 1)
+                
         glBindVertexArray(self.VAO)
             
         for i in range(tilesX):
@@ -617,6 +647,8 @@ class OceanFloor():
                 glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)        
 
         glBindVertexArray(0)
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, 0)
         glUseProgram(0)
 
 class oceanRenderer():
@@ -639,13 +671,14 @@ class oceanRenderer():
         self.status = statusConsole
         self.status.addParameter('Wind')      
         self.status.addParameter('Wave height')
-        # Animation Timer
-        self.time = 0.0
+        self.status.addParameter('Ocean depth')
         # Ocean Render Parameters
-        self.oceanTilesX = 10
-        self.oceanTilesZ = 10
+        self.oceanTilesX = 15
+        self.oceanTilesZ = 15
         self.wireframe = False
         self.enableUpdates = False
+        self.drawSurface = True               # Render the ocean surface
+        self.drawFloor = True                 # Render the ocean floor
         # Ocean Parameters
         self.oceanWind = Vector2(32.0,32.0)   # Ocean wind in X,Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
@@ -653,26 +686,32 @@ class oceanRenderer():
         self.oceanLength = 64                 # Ocean length parameter
         self.oceanDepth = 30.0
         # OpenGL Shader
-        self.mMainShader = ShaderProgram.open('shaders/waves.shader')
+        self.oceanShader = ShaderProgram.open('shaders/waves.shader')
+        self.oceanFloorShader = ShaderProgram.open('shaders/ocean_caustics.shader')
         # Textures
         self.oceanFloorTexture = pyglet.image.load('images/sand.png').get_texture() 
-        # Ocean Floor Renderable
-        self.oceanFloor = OceanFloor(
-                            self.mMainShader,
-                            self.camera,
-                            self.oceanFloorTexture,
-                            self.oceanTileSize, 
-                            1.0, 
-                            Vector3(0.0,0.0,0.0))             
+        self.causticMapTexture = pyglet.image.load('images/lightmap.png').get_texture() 
         # Ocean Surface Renderable
         self.oceanSurface = OceanSurface(
-                            self.mMainShader,
+                            self.oceanShader,
                             self.camera,
                             self.oceanTileSize, 
                             1.0, 
                             Vector3(0.0,self.oceanDepth,0.0),
                             self.oceanWind,
-                            self.oceanWaveHeight)
+                            self.oceanWaveHeight) 
+        # Ocean Floor Renderable
+        self.oceanFloor = OceanFloor(
+                            self.oceanFloorShader,
+                            self.camera,
+                            self.oceanFloorTexture,
+                            self.causticMapTexture,
+                            self.oceanSurface,
+                            self.oceanDepth,
+                            self.oceanTileSize, 
+                            1.0, 
+                            Vector3(0.0,0.0,0.0))             
+
                             
     def statusUpdates(self, dt):
         """
@@ -680,6 +719,7 @@ class oceanRenderer():
         """
         self.status.setParameter('Wind', self.oceanWind)
         self.status.setParameter('Wave height', self.oceanWaveHeight)
+        self.status.setParameter('Ocean depth', self.oceanDepth)
     def resetOcean(self):
         """
         Recreate the ocean generator with new parameters
@@ -692,29 +732,42 @@ class oceanRenderer():
         Load the shaders
         Allow hotloading of shaders while the program is running
         """
-        self.mMainShader = ShaderProgram.open('shaders/waves.shader')
+        self.oceanShader = ShaderProgram.open('shaders/waves.shader')
+        self.oceanFloorShader = ShaderProgram.open('shaders/ocean_caustics.shader')
     def render(self, dt):
         """ Alternative draw loop"""
-        # Update timer
-        self.time += dt
+        
         # Update camera orientation and position
         self.cameraUpdate(dt)
         
+        if self.isKeyPressed(key.C):
+            self.oceanDepth += 0.05
+            self.oceanSurface.setDepth(self.oceanDepth)
+            self.oceanFloor.setDepth(self.oceanDepth)
+        elif self.isKeyPressed(key.V):
+            self.oceanDepth -= 0.05
+            self.oceanSurface.setDepth(self.oceanDepth)
+            self.oceanFloor.setDepth(self.oceanDepth)
+        
         # Draw ocean surface and floor
         
-        glUseProgram(self.mMainShader.id)  
+        glUseProgram(self.oceanShader.id)  
         
         if self.wireframe:
             glPolygonMode(GL_FRONT, GL_LINE)
         else:
             glPolygonMode(GL_FRONT, GL_FILL)
-
-        self.oceanFloor.draw(dt, self.oceanTilesX, self.oceanTilesZ)
         
-        if self.enableUpdates:
-            self.oceanSurface.draw(dt, self.oceanTilesX, self.oceanTilesZ)
-        else:
-            self.oceanSurface.draw(0.0, self.oceanTilesX, self.oceanTilesZ)
+        if self.drawSurface:
+            if self.enableUpdates:
+                self.oceanSurface.draw(dt, self.oceanTilesX, self.oceanTilesZ)
+            else:
+                self.oceanSurface.draw(0.0, self.oceanTilesX, self.oceanTilesZ)
+                
+        glUseProgram(self.oceanFloorShader.id)
+        
+        if self.drawFloor:
+            self.oceanFloor.draw(dt, self.oceanTilesX, self.oceanTilesZ)
             
         glPolygonMode(GL_FRONT, GL_FILL)
         glUseProgram(0)
@@ -764,7 +817,12 @@ class oceanRenderer():
         if symbol == key.NUM_8:
             self.oceanWaveHeight /= 2.0
             self.resetOcean()
-
+            
+        if symbol == key.Z:
+            self.drawSurface = not self.drawSurface
+        if symbol == key.X:
+            self.drawFloor = not self.drawFloor
+            
     def isKeyPressed(self, symbol):
         if symbol in self.pressedKeys:
             return self.pressedKeys[symbol]

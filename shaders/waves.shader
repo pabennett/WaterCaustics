@@ -15,7 +15,7 @@ varying vec3 normal;
 varying vec3 halfAngleVector;
 varying float fogFactor;
 
-const vec3 lightPosition = vec3(1000.0,100.0,-1000.0);
+const vec3 lightPosition = vec3(1000.0, 600.0, 1000.0);
 
 void main(){
 
@@ -79,9 +79,9 @@ void main()
     vec4 c = vec4(1,1,1,1);//texture(water, texCoord);
 
     vec4 emissive_color = vec4(1.0, 1.0, 1.0,  1.0);
-    vec4 ambient_color  = vec4(0.0, 0.65, 0.75, 1.0);
-    vec4 diffuse_color  = vec4(0.5, 0.65, 0.75, 1.0);
-    vec4 specular_color = vec4(1.0, 0.25, 0.0,  1.0);
+    vec4 ambient_color  = vec4(0.0, 0.49, 1.0 , 1.0);
+    vec4 diffuse_color  = vec4(1.0, 1.0, 1.0,  1.0);
+    vec4 specular_color = vec4(1.0, 1.0, 1.0,  1.0);
 
     float emissive_contribution = 0.00;
     float ambient_contribution  = 0.30;
@@ -98,7 +98,7 @@ void main()
 			specular_color * specular_contribution * c * max(pow(dot(normal1, halfAngleVector1), 120.0), 0.0) :
 			vec4(0.0, 0.0, 0.0, 0.0));
 
-	fragColour = fragColour * (1.0-fogFactor) + vec4(0.25, 0.75, 0.65, 1.0) * (fogFactor);
+	fragColour = fragColour * (1.0-fogFactor) + vec4(0.0, 0.49, 1.0 ,1.0) * (fogFactor);
 
 	fragColour.a = 1.0;
     gl_FragColor = fragColour;
