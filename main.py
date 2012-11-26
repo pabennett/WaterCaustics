@@ -60,6 +60,8 @@ camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
 
 renderer = water.oceanRenderer(window, camera, status)
 
+#renderer = renderer.Renderer(window, camera, status)
+
 def statusUpdates(dt):
     position = tuple(int(a) for a in camera.position.values())
     velocity = tuple(int(a) for a in camera.moveVelocity.values())
@@ -74,7 +76,7 @@ def statusUpdates(dt):
 # Main Render Loop
 def on_draw(dt):
     window.clear()
-    renderer.render(dt)
+    renderer.draw(dt)
 
     # Show Console Data
     status.draw()

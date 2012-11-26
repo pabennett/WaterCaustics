@@ -18,6 +18,7 @@ from math import *
 import ctypes
 # Quaternion based freelook camera
 import camera
+
 def frameBuffer(tex):
     """ Create a framebuffer object and link it to the given texture """
     fbo = GLuint()
@@ -73,7 +74,7 @@ class Renderer():
 
     """
 
-    def __init__(self, window, camera):
+    def __init__(self, window, camera, statusConsole):
         """ Constructor """
         # Register the renderer for control input
         self.keys = key.KeyStateHandler()
@@ -92,6 +93,9 @@ class Renderer():
         self.width = szx
         self.height = szy
         self.camera = camera
+        
+        # Console
+        self.status = statusConsole
         
         # Texture size
         self.texWidth = 512
@@ -142,11 +146,16 @@ class Renderer():
         self.mRippleShader = ShaderProgram.open('shaders/ripples.shader')
         self.mCopyShader = ShaderProgram.open('shaders/passthru.shader')
         
+
+        
         self.mBGTextureHandle = pyglet.image.load('images/tiles.png').get_texture()                                  
                                                         
                                                         
-        self.mEnvTextureHandle = pyglet.image.load('images/lightmap.png').get_texture()   
-
+        self.mEnvTextureHandle = pyglet.image.load('images/lightmap.png').get_texture()  
+        
+        glTexParameteri(self.mEnvTextureHandle.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(self.mEnvTextureHandle.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        
         self.mTextureAHandle = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
                                                         self.texWidth, 
                                                         self.texHeight,
@@ -207,6 +216,8 @@ class Renderer():
         self.mEnableRefraction = True
         self.camEnable = False
         
+        self.window.set_exclusive_mouse(self.camEnable)
+        
         self.mRenderMode = False    ## False -> Wave surface is generated from 
                                     ##          composite sombrero wave function.
                                     ## True ->  Wave surface is generated from a 
@@ -236,7 +247,13 @@ class Renderer():
         self.mTimerRewind = False
         self.mTimerStep = pi/1000.
         self.mCausticBrightness = 1.0;    
-        self.mLightPos = [0.5, 0.5]       
+        self.mLightPos = [0.5, 0.5] 
+    def statusUpdates(self, dt):
+        """
+        Called periodically by main loop for onscreen text updates
+        self.status.setParameter('param name', self.param)
+        """
+        pass
     def loadShaders(self):
         """ 
         Load the shaders

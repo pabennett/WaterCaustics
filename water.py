@@ -360,6 +360,11 @@ class Heightfield():
         
         
 class OceanSurface():
+    """
+    The ocean surface is formed from a 2D tiled mesh where the vertices are 
+    displaced according to a heightfield generated from a surface generator
+    object.
+    """
     def __init__(self,
                  shaderProgram,
                  camera,
@@ -416,6 +421,10 @@ class OceanSurface():
                                        self.oceanLength)
 
     def setupVAO(self):
+        """
+        Perform initial setup for this object's vertex array object, which
+        stores the vertex VBO and indices VBO.
+        """
         # Vertex Array Object for Position and Normal VBOs
         self.VAO = GLuint()
         glGenVertexArrays(1,pointer(self.VAO))
@@ -450,8 +459,16 @@ class OceanSurface():
 
         glBindVertexArray(0)
     def setDepth(self, depth):
+        """
+        Set the depth of the ocean by modifying the Y offset which is ultimately
+        applied to the Y translation component of the model matrix.
+        """
         self.offset.y = depth
     def setHeightfieldParams(self, wind, waveHeight):
+        """
+        Adjust the generator parameters which govern how the ocean surface
+        behaves.
+        """
         self.oceanWind = wind
         self.oceanWaveHeight = waveHeight
         del self.heightfield
@@ -460,6 +477,11 @@ class OceanSurface():
                                        self.oceanWind,
                                        self.oceanLength)
     def updateHeightfield(self, dt):
+        """
+        If deltaTime is not zero, perform an ocean surface update for time T.
+        This update will run heightmap, diplacement and normal generation
+        routines and then passes the updated values into the vertex array.
+        """
         if dt > 0.0:
             self.time += dt
             self.heightfield.updateVerts(self.time, self.verts, self.v0)
@@ -474,8 +496,8 @@ class OceanSurface():
     def draw(self, dt, tilesX=1, tilesZ=1):
         """
         Draw this object.
-        Multiple copies of this object can be drawn by specifying a tilesX and
-        tilesZ value.
+        This ocean surface tile can be repeated in X and Z by increasing the
+        value of tilesX and tilesZ respectively.
         """
         tilesX = 1 if tilesX < 1 else tilesX
         tilesZ = 1 if tilesZ < 1 else tilesZ
@@ -504,6 +526,11 @@ class OceanSurface():
         glUseProgram(0)
         
 class OceanFloor():
+    """
+    The ocean floor is formed from a 2D tiled mesh of equivalent size and 
+    resolution to the ocean surface. The ocean floor is textured and forms a 
+    canvas for painting an underwater caustics pattern.
+    """
     def __init__(self,
                  shaderProgram,
                  camera,
@@ -524,7 +551,9 @@ class OceanFloor():
                                         # surface
         self.oceanDepth = oceanDepth    # Ocean depth                                        
         
-        self.camera.setpos(-10.0, 2.0, -10.0)
+        # Initial camera orientation and position
+        self.camera.setpos(-10.0, 5.0, -10.0)
+        self.camera.orient(225.0,0.0,0.0)
         
         # Set up GLSL uniform and attribute handles
         self.positionHandle = glGetAttribLocation(self.shader.id, "vPosition")
@@ -555,19 +584,24 @@ class OceanFloor():
         # Set up the VAO for rendering
         self.setupVAO()
     def setDepth(self, depth):
+        """
+        Set the depth of the ocean. The ocean depth is passed to the caustics
+        shader as a parameter and controls the focus of the caustics pattern.
+        """
         self.oceanDepth = depth    
     def updateCaustics(self, dt):
         """
-        Get the update normal map from the ocean surface and use it to generate
+        Get the updated normal map from the ocean surface and use it to generate
         a new caustic pattern on the ocean floor
         """
         
-        # Update the normals from the ocean surface (Y doesnt change)
-        self.verts[::,::,3] = self.surface.verts[::,::,3]
-        self.verts[::,::,4] = self.surface.verts[::,::,1]
-        self.verts[::,::,5] = self.surface.verts[::,::,5]
+        # Update the normals from the ocean surface
+        # Normal Y does not change, so instead pass Position Y to the shader
+        # as the height is useful for caustics generation.
+        self.verts[::,::,3] = self.surface.verts[::,::,3] # Normal X
+        self.verts[::,::,4] = self.surface.verts[::,::,1] # Position Y
+        self.verts[::,::,5] = self.surface.verts[::,::,5] # Normal Z
 
-        
         # Update the vertex VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)
         
@@ -576,8 +610,11 @@ class OceanFloor():
                      np.ctypeslib.as_ctypes(self.verts),
                      GL_STATIC_DRAW)
 
-    
     def setupVAO(self):
+        """
+        Perform initial setup for this object's vertex array object, which
+        stores the vertex VBO and indices VBO.
+        """
         # Vertex Array Object for Position and Normal VBOs
         self.VAO = GLuint()
         glGenVertexArrays(1,pointer(self.VAO))
@@ -617,8 +654,8 @@ class OceanFloor():
     def draw(self, dt, tilesX=1, tilesZ=1):
         """
         Draw this object.
-        Multiple copies of this object can be drawn by specifying a tilesX and
-        tilesZ value.
+        This ocean surface tile can be repeated in X and Z by increasing the
+        value of tilesX and tilesZ respectively.
         """
         tilesX = 1 if tilesX < 1 else tilesX
         tilesZ = 1 if tilesZ < 1 else tilesZ
@@ -676,11 +713,11 @@ class oceanRenderer():
         self.oceanTilesX = 15
         self.oceanTilesZ = 15
         self.wireframe = False
-        self.enableUpdates = False
+        self.enableUpdates = True
         self.drawSurface = True               # Render the ocean surface
         self.drawFloor = True                 # Render the ocean floor
         # Ocean Parameters
-        self.oceanWind = Vector2(32.0,32.0)   # Ocean wind in X,Z axis
+        self.oceanWind = Vector2(2.0,2.0)     # Ocean wind in X,Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
         self.oceanTileSize = 64               # Must be a power of 2    
         self.oceanLength = 64                 # Ocean length parameter
@@ -734,7 +771,7 @@ class oceanRenderer():
         """
         self.oceanShader = ShaderProgram.open('shaders/waves.shader')
         self.oceanFloorShader = ShaderProgram.open('shaders/ocean_caustics.shader')
-    def render(self, dt):
+    def draw(self, dt):
         """ Alternative draw loop"""
         
         # Update camera orientation and position

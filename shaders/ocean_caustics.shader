@@ -119,7 +119,7 @@ void main()
     // Caustics
     vec3 position1 = vec3(0.5,0.0,0.5);
     vec3 intercept = line_plane_intercept(  position1,
-                                            vec3(normal1.x,-1.0,normal1.z), 
+                                            vec3(normal1.x,1.0,normal1.z), 
                                             vec3(0, 1, 0), 
                                             -depth1);
     
