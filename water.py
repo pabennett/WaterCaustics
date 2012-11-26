@@ -723,7 +723,7 @@ class oceanRenderer():
         self.oceanLength = 64                 # Ocean length parameter
         self.oceanDepth = 30.0
         # OpenGL Shader
-        self.oceanShader = ShaderProgram.open('shaders/waves.shader')
+        self.oceanShader = ShaderProgram.open('shaders/ocean.shader')
         self.oceanFloorShader = ShaderProgram.open('shaders/ocean_caustics.shader')
         # Textures
         self.oceanFloorTexture = pyglet.image.load('images/sand.png').get_texture() 
