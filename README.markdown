@@ -1,7 +1,7 @@
 WaterCaustics - Rendering Experiments
 ==============================
 
-![WaterCaustics](http://www.bytebash.com/files/watercaustics.png "Water Caustics")
+![WaterCaustics](http://www.bytebash.com/files/water_caustics.png "Water Caustics")
 
 Description
 -----------
