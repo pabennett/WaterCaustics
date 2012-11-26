@@ -7,7 +7,8 @@ Description
 -----------
 
 The aim of this project is to emulate the light patterns known as water caustics
-typically seen on on the bottom of a swimming pool. 
+typically seen on on the bottom of a swimming pool. I investigate various
+methods of simulating water surfaces and associated caustics.
 
 Dependencies
 ------------
@@ -18,10 +19,45 @@ This code has been written in Python 2.7 with the following additional modules:
 
 [Gletools](http://codeflow.org/entries/2009/jul/31/gletools-advanced-pyglet-utilities/ "Gletools") to allow compilation of GLSL shaders
 
+Features
+--------
+
+Currently three methods of simulating water surfaces have been implemented,
+these are:
+
++ FBO ping-pong for shallow water ripples with user interraction via the mouse.
++ Sombrero function (a composite creates something resembling a water surface).
++ Tessendorf's FFT synthesis technique.
+
+The renderer instance in main.py uses the Tessendorf ocean surface simulator by
+default.
+
+There is currently only one caustics generator implemented, which is the one
+detailed in Nvidia's GPU gems series (link below). It still needs some work too!
+
 Controls
 --------
 
-A listing of the controls is provided below:
+A listing of the controls is provided below, these depend on which renderer is
+in use:
+
+Tessendorf FFT synthesis renderer:
+
++   **P** Reload the shaders. Shader hotloading is handy for debugging and tweaking.
++   **V** Lower the height of the water plane
++   **C** Raise the height of the water plane
++   **Z** Toggle drawing ocean surface
++   **X** Toggle drawing ocean floor
++   **MOUSE** Look
++   **WSAD**  Move
++   **QE**    Change roll
++   **SPACE** Toggle timer (pauses surface animations)
++   **NUM_4/NUM_5** Double/halve Z wind component
++   **NUM_1/NUM_2** Double/halve X wind component
++   **NUM_7/NUM_8** Double/halve phillips spectrum factor (affects wave height)
++   **L** Toggle wireframe
+
+FBO ping-pong / Sombrero renderer:
 
 +   **P** Reload the shaders. Shader hotloading is handy for debugging and tweaking.
 +   **H** Lower the height of the water plane
