@@ -79,8 +79,9 @@ class StatusConsole:
     def setTitle(self, string=''):
         self.title = string
     def updateLabel(self):
-        self.label.text = ''.join([str(a) + " : " + str(b) + '\n' for a,b in self.parameters.items()])
-        self.label.text = self.title + '\n' + self.label.text
+        s = ''.join([str(a) + " : " + str(b) + '\n' for a,b in self.parameters.items()])
+        s = self.title + '\n' + s
+        self.label.text = s
     def draw(self):
         if(self.modified):
             self.updateLabel()
