@@ -105,7 +105,12 @@ def Mesh2DSurface(dimension=64, scale=1.0):
     return verts, indices
 
 class Heightfield():
-    def __init__(self, dimension=64, A=0.0005,w=Vector2(32.0, 32.0),length=64.0):
+    def __init__(self, 
+                 dimension=64, 
+                 A=0.0005,
+                 w=Vector2(32.0, 32.0),
+                 length=64.0,
+                 period=200.0):
 
         """ 
         ------------------------------------------------------------------------
@@ -128,7 +133,7 @@ class Heightfield():
         self.a = A                      # Phillips spectrum parameter
                                         # affects heights of waves
                                            
-        self.w0 = 2.0 * pi / 200.0      # Used by the dispersion function
+        self.w0 = 2.0 * pi / period     # Used by the dispersion function
         
         self.g = 9.81                   # Constant acceleration due to gravity
                        
@@ -201,19 +206,6 @@ class Heightfield():
         r = random.random()
         return r * sqrt(self.phillips(nPrime, mPrime) / 2.0)
         
-    def getHTilde(self, t, nPrime, mPrime):    
-        """ 
-        Get the wave height value for time t at position (m',n')
-        """
-        omegat = self.dispersionLUT[mPrime][nPrime] * t
-        
-        cos_ = cos(omegat)
-        sin_ = sin(omegat)
-        c0 = cos_ + (sin_ * 1j)
-        c1 = cos_ + (-sin_ * 1j)
-
-        return self.hTilde0[mPrime][nPrime] * c0 + self.hTilde0mk[mPrime][nPrime] * c1
-          
     def genHTildeArray(self, t):
         """ 
         Generate array of wave height values for time t 
@@ -372,7 +364,8 @@ class OceanSurface():
                  scale=1.0, 
                  offset=Vector3(0.0,0.0,0.0),
                  wind=Vector2(0.0,0.0),
-                 height=0.0005):
+                 height=0.0005,
+                 period=200.0):
                  
         self.N = N                      # N - should be power of 2
         self.offset = offset            # World space offset
@@ -414,11 +407,13 @@ class OceanSurface():
         self.oceanTileSize = N                # Must be a power of 2    
         self.oceanLength = N                  # Ocean length parameter
         self.time = 0.0                       # Time parameter
+        self.period = period                  # The period of the surface anmim
         # Ocean Heightfield Generator
         self.heightfield = Heightfield(self.oceanTileSize,
                                        self.oceanWaveHeight, 
                                        self.oceanWind,
-                                       self.oceanLength)
+                                       self.oceanLength,
+                                       self.period)
 
     def setupVAO(self):
         """
@@ -709,6 +704,7 @@ class oceanRenderer():
         self.status.addParameter('Wind')      
         self.status.addParameter('Wave height')
         self.status.addParameter('Ocean depth')
+        self.status.addParameter('Time')
         # Ocean Render Parameters
         self.oceanTilesX = 15
         self.oceanTilesZ = 15
@@ -722,6 +718,7 @@ class oceanRenderer():
         self.oceanTileSize = 64               # Must be a power of 2    
         self.oceanLength = 64                 # Ocean length parameter
         self.oceanDepth = 30.0
+        self.period = 10.0                    # Period of ocean surface anim
         # OpenGL Shader
         self.oceanShader = ShaderProgram.open('shaders/ocean.shader')
         self.oceanFloorShader = ShaderProgram.open('shaders/ocean_caustics.shader')
@@ -736,7 +733,8 @@ class oceanRenderer():
                             1.0, 
                             Vector3(0.0,self.oceanDepth,0.0),
                             self.oceanWind,
-                            self.oceanWaveHeight) 
+                            self.oceanWaveHeight,
+                            self.period) 
         # Ocean Floor Renderable
         self.oceanFloor = OceanFloor(
                             self.oceanFloorShader,
@@ -757,6 +755,7 @@ class oceanRenderer():
         self.status.setParameter('Wind', self.oceanWind)
         self.status.setParameter('Wave height', self.oceanWaveHeight)
         self.status.setParameter('Ocean depth', self.oceanDepth)
+        self.status.setParameter('Time', self.oceanSurface.time)
     def resetOcean(self):
         """
         Recreate the ocean generator with new parameters
