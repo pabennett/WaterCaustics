@@ -15,6 +15,8 @@ Dependencies
 
 This code has been written in Python 2.7 with the following additional modules:
 
+[Numpy](http://numpy.scipy.org/ "Numpy") for fast array operations
+
 [Pyglet](http://www.pyglet.org/ "Pyglet") for OpenGL and windowing + controls
 
 [Gletools](http://codeflow.org/entries/2009/jul/31/gletools-advanced-pyglet-utilities/ "Gletools") to allow compilation of GLSL shaders
