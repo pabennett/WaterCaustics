@@ -11,7 +11,7 @@ free-look camera system.
 """
 from math import sqrt, tan, pi
 from ctypes import c_float
-from vector3 import Vector3
+from vector import Vector3
 
 class Matrix16():
     def __init__(self, *elements):
