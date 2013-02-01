@@ -25,6 +25,24 @@ from pyglet.window import key, mouse
 from gletools import ShaderProgram
 import console
          
+         
+def np2DArrayToImage(array, name="figure.png"):
+    """
+    Plot the numpy array as an intensity chart and save the figure as an image
+    """
+    import matplotlib
+    matplotlib.use('wxagg')
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    
+    fig = plt.figure()
+    
+    plt.imshow(array, cmap=cm.jet)
+    
+    plt.savefig(name)
+    
+    
+         
 def np2DArray(initialiser, rows, columns):
     """ Utility Function for generating numpy arrays """
     return np.array([[initialiser for i in range(columns)] for j in range(rows)])        
@@ -162,13 +180,16 @@ class Heightfield():
                 self.kxLUT[i][j] = kx
                 self.kzLUT[i][j] = kz
                 # Generate HTilde initial values
-                self.hTilde0[i][j] = self.getHTilde0(j, i)
-                self.hTilde0mk[i][j] = self.getHTilde0(-j, i)        
+                self.hTilde0[i][j] = self.getHTilde0(j, i, False)
+                self.hTilde0mk[i][j] = self.getHTilde0(-j, -i, False).conjugate()      
                 # Build a dispersion LUT
                 self.dispersionLUT[i][j] = self.dispersion(j, i) 
                 # Build a length LUT
                 self.lenLUT[i][j] = sqrt(kx * kx + kz * kz)
-
+        
+        np2DArrayToImage(self.dispersionLUT, "dispersion.png")
+        np2DArrayToImage(self.hTilde0.real, "hTilde0.png")
+        
     def phillips(self, nPrime, mPrime):
         """
         The phillips spectrum
@@ -201,9 +222,9 @@ class Heightfield():
         kz = pi * (2.0 * mPrime - self.N) / self.length
         return floor(sqrt(self.g * sqrt(kx**2 + kz**2)) / self.w0) * self.w0
         
-    def getHTilde0(self, nPrime, mPrime):
+    def getHTilde0(self, nPrime, mPrime, gaussianSample=True):
         import random
-        r = random.random()
+        r = random.random() if gaussianSample else 1
         return r * sqrt(self.phillips(nPrime, mPrime) / 2.0)
         
     def genHTildeArray(self, t):
