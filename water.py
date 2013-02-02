@@ -314,16 +314,17 @@ class Heightfield():
 
         # Apply -1**x, -1**z factors
         self.hTildeSlopeX[::2,::2] = -self.hTildeSlopeX[::2,::2]
-        self.hTildeSlopeZ[::2,::2] = -self.hTildeSlopeZ[::2,::2]
         self.hTildeSlopeX[1::2,1::2] = -self.hTildeSlopeX[1::2,1::2]
+        self.hTildeSlopeZ[::2,::2] = -self.hTildeSlopeZ[::2,::2]
         self.hTildeSlopeZ[1::2,1::2] = -self.hTildeSlopeZ[1::2,1::2]
+        self.hTilde = -self.hTilde
         self.hTilde[::2,::2] = -self.hTilde[::2,::2]
-        self.hTildeDx[::2,::2] = -self.hTildeDx[::2,::2]
-        self.hTildeDz[::2,::2] = -self.hTildeDz[::2,::2]
         self.hTilde[1::2,1::2] = -self.hTilde[1::2,1::2]
+        self.hTildeDx[::2,::2] = -self.hTildeDx[::2,::2]
         self.hTildeDx[1::2,1::2] = -self.hTildeDx[1::2,1::2]
+        self.hTildeDz[::2,::2] = -self.hTildeDz[::2,::2]
         self.hTildeDz[1::2,1::2] = -self.hTildeDz[1::2,1::2]
-                   
+                           
         # Update the vertex list for all elements apart from max indices
         # Position X,Y,Z
         verts[:self.N:,:self.N:,0] = v0[:self.N:,:self.N:,0] + self.hTildeDx * -1
@@ -742,7 +743,7 @@ class oceanRenderer():
         self.drawSurface = True               # Render the ocean surface
         self.drawFloor = True                 # Render the ocean floor
         # Ocean Parameters
-        self.oceanWind = Vector2(2.0,2.0)     # Ocean wind in X,Z axis
+        self.oceanWind = Vector2(32.0,32.0)     # Ocean wind in X,Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
         self.oceanTileSize = 64               # Must be a power of 2    
         self.oceanLength = 64                 # Ocean length parameter
