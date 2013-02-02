@@ -41,8 +41,6 @@ def np2DArrayToImage(array, name="figure.png"):
     
     plt.savefig(name)
     
-    
-         
 def np2DArray(initialiser, rows, columns):
     """ Utility Function for generating numpy arrays """
     return np.array([[initialiser for i in range(columns)] for j in range(rows)])        
@@ -53,7 +51,20 @@ def np3DArray(initialiser, points, rows, columns, dtype=np.float32):
                                    for j in range(columns)] \
                                    for k in range(rows)], \
                                    dtype=dtype)    
-                                                               
+ 
+def gaussianRandomVariable():
+    import random
+    w = 1.0
+    x1 = 0.0
+    x2 = 0.0
+    while(w >= 1.):
+        x1 = 2. * random.random() - 1.
+        x2 = 2. * random.random() - 1.
+        w = x1 * x1 + x2 * x2
+    w = sqrt((-2. * log(w)) / w)
+    res = complex(x1 * w, x2 * w) 
+    return res 
+ 
 def Mesh2DSurface(dimension=64, scale=1.0):
     """
     Generate a 2D surface mesh with the given dimensions, scale and offset.
@@ -180,15 +191,12 @@ class Heightfield():
                 self.kxLUT[i][j] = kx
                 self.kzLUT[i][j] = kz
                 # Generate HTilde initial values
-                self.hTilde0[i][j] = self.getHTilde0(j, i, False)
-                self.hTilde0mk[i][j] = self.getHTilde0(-j, -i, False).conjugate()      
+                self.hTilde0[i][j] = self.getHTilde0(j, i)
+                self.hTilde0mk[i][j] = self.getHTilde0(-j, -i).conjugate()      
                 # Build a dispersion LUT
                 self.dispersionLUT[i][j] = self.dispersion(j, i) 
                 # Build a length LUT
                 self.lenLUT[i][j] = sqrt(kx * kx + kz * kz)
-        
-        np2DArrayToImage(self.dispersionLUT, "dispersion.png")
-        np2DArrayToImage(self.hTilde0.real, "hTilde0.png")
         
     def phillips(self, nPrime, mPrime):
         """
@@ -205,7 +213,7 @@ class Heightfield():
         k_length4 = k_length2 * k_length2
         
         k_dot_w = k.normalise().dot(self.w.normalise())
-        k_dot_w2 = k_dot_w * k_dot_w
+        k_dot_w2 = k_dot_w * k_dot_w * k_dot_w * k_dot_w * k_dot_w * k_dot_w
         
         w_length = self.w.magnitude()
         L = w_length * w_length / self.g
@@ -221,10 +229,10 @@ class Heightfield():
         kx = pi * (2.0 * nPrime - self.N) / self.length
         kz = pi * (2.0 * mPrime - self.N) / self.length
         return floor(sqrt(self.g * sqrt(kx**2 + kz**2)) / self.w0) * self.w0
-        
-    def getHTilde0(self, nPrime, mPrime, gaussianSample=True):
+           
+    def getHTilde0(self, nPrime, mPrime):
         import random
-        r = random.random() if gaussianSample else 1
+        r = gaussianRandomVariable()
         return r * sqrt(self.phillips(nPrime, mPrime) / 2.0)
         
     def genHTildeArray(self, t):
@@ -276,7 +284,7 @@ class Heightfield():
         Compute FFT
         ------------------------------------------------------------------------
         """
-        
+                                
         # Heights
         self.hTilde = np.fft.fft2(self.hTilde)
         # Displacements
@@ -727,8 +735,8 @@ class oceanRenderer():
         self.status.addParameter('Ocean depth')
         self.status.addParameter('Time')
         # Ocean Render Parameters
-        self.oceanTilesX = 15
-        self.oceanTilesZ = 15
+        self.oceanTilesX = 8
+        self.oceanTilesZ = 8
         self.wireframe = False
         self.enableUpdates = True
         self.drawSurface = True               # Render the ocean surface
