@@ -3,6 +3,7 @@
 *.dll
 *.pyc
 *.spyderproject
+*.png
 dist
 build
 misc
