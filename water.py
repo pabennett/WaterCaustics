@@ -24,8 +24,25 @@ from ctypes import pointer, sizeof
 from pyglet.window import key, mouse
 from gletools import ShaderProgram
 import console
-         
-         
+import ctypes
+       
+def frameBuffer(tex):
+    """ Create a framebuffer object and link it to the given texture """
+    fbo = GLuint()
+    glGenFramebuffers(1, ctypes.byref(fbo))
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                              GL_COLOR_ATTACHMENT0_EXT,
+                              GL_TEXTURE_2D,
+                              tex.id,
+                              0)
+
+    status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)
+    assert status == GL_FRAMEBUFFER_COMPLETE_EXT
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    return fbo
+
+ 
 def np2DArrayToImage(array, name="figure.png"):
     """
     Plot the numpy array as an intensity chart and save the figure as an image
@@ -558,6 +575,7 @@ class OceanFloor():
     """
     def __init__(self,
                  shaderProgram,
+                 refractionShader,
                  camera,
                  texture,
                  causticMapTexture,
@@ -571,6 +589,7 @@ class OceanFloor():
         self.offset = offset            # World space offset
         self.scale = scale              # Size of each quad in world space
         self.shader = shaderProgram     # The GLSL shader program handle
+        self.refractionShader = refractionShader
         self.camera = camera            # A camera object (provides MVP)
         self.surface = oceanSurface     # Maintain a reference to the ocean
                                         # surface
@@ -594,6 +613,39 @@ class OceanFloor():
         self.texture = texture
         self.causticTexture = causticMapTexture
         
+        # Photon Texture Shader Handles
+        self.rsPositionHandle = glGetAttribLocation(
+                                            self.refractionShader.id,
+                                            "vPosition")
+        self.rsNormalHandle = glGetAttribLocation(
+                                            self.refractionShader.id,
+                                            "vNormal")                                        
+        self.rsLightPositionHandle = glGetUniformLocation(
+                                            self.refractionShader.id,
+                                            "vLightPosition")
+        self.rsDepthHandle = glGetUniformLocation(
+                                            self.refractionShader.id,
+                                            "depth") 
+        self.rsSizeHandle = glGetUniformLocation(
+                                            self.refractionShader.id,
+                                            "viewportSize") 
+                       
+                
+        self.causticMap = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
+                                                        self.N, 
+                                                        self.N,
+                                                        GL_RGBA)
+                                                        
+        self.causticMapO = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
+                                                        self.N, 
+                                                        self.N,
+                                                        GL_RED)
+        
+        self.causticMapFBO = frameBuffer(self.causticMap)
+        
+        self.lightPosition = Vector3(32.0, 600.0, 32.0)
+        
+        
         glTexParameteri(self.causticTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(self.causticTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         
@@ -608,6 +660,43 @@ class OceanFloor():
         self.modelMatrix[14] = self.offset.z
         # Set up the VAO for rendering
         self.setupVAO()
+        
+        self.buffer = (GLubyte * (self.N * self.N * 4))()
+        
+        
+    def renderToFBO(self, frameBufferHandle, textureHandle):
+        
+        # Bind FBO A/B to set Texture A/B as the output texture
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, frameBufferHandle)
+            
+        # Set the viewport to the size of the texture 
+        # (we are going to render to texture)
+        glViewport(0,0, self.N, self.N)
+            
+        # Clear the output texture
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+             
+        # Bind the refraction shader
+        glUseProgram(self.refractionShader.id)
+         
+        # Need to create a view matrix for the light position.
+
+        glUniform3f(self.rsLightPositionHandle, *self.lightPosition.values())
+        glUniform1f(self.rsDepthHandle, self.oceanDepth)
+        glUniform1f(self.rsSizeHandle, self.N)    
+        glBindVertexArray(self.VAO)
+
+        glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)        
+
+        # Unbind shader and FBO
+        glBindVertexArray(0)
+        glUseProgram(0)   
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
+        
+        # Restore viewport
+        glViewport(0, 0, self.camera.width, self.camera.height)
+        
+        
     def setDepth(self, depth):
         """
         Set the depth of the ocean. The ocean depth is passed to the caustics
@@ -623,10 +712,14 @@ class OceanFloor():
         # Update the normals from the ocean surface
         # Normal Y does not change, so instead pass Position Y to the shader
         # as the height is useful for caustics generation.
+        #self.verts[::,::,0] = self.surface.verts[::,::,0] # Position X
+        #self.verts[::,::,1] = self.surface.verts[::,::,1] # Position Y
+        #self.verts[::,::,2] = self.surface.verts[::,::,2] # Position Z
         self.verts[::,::,3] = self.surface.verts[::,::,3] # Normal X
-        self.verts[::,::,4] = self.surface.verts[::,::,1] # Position Y
+        self.verts[::,::,4] = self.surface.verts[::,::,4] # Normal Y
         self.verts[::,::,5] = self.surface.verts[::,::,5] # Normal Z
-
+                 
+                
         # Update the vertex VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)
         
@@ -682,18 +775,58 @@ class OceanFloor():
         This ocean surface tile can be repeated in X and Z by increasing the
         value of tilesX and tilesZ respectively.
         """
+
         tilesX = 1 if tilesX < 1 else tilesX
         tilesZ = 1 if tilesZ < 1 else tilesZ
         
         self.updateCaustics(dt)
         
+        # Generate Photon Map Data
+        self.renderToFBO(self.causticMapFBO, self.causticMap)
+        
+        glBindTexture(GL_TEXTURE_2D, self.causticMap.id)
+                
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.buffer)
+
+        #array = np.array(self.buffer,dtype=GLubyte)
+
+        H,_,_ = np.histogram2d(self.buffer[0::4], self.buffer[1::4], bins=(self.N, self.N))
+        #H = ((H+np.min(H))/(np.min(H)+np.max(H)))*np.max(H)
+        #H = H.reshape(self.N*self.N)   
+        H = H.astype(GLubyte)
+        
+        # narrayt = GLubyte * (self.N * self.N * 4)
+        # narray = narrayt()
+          
+        # for i in range(self.N):
+            # for j in range(self.N):
+                # x = int((self.buffer[(i * self.N + j) * 4]/256.)*self.N)
+                # y = int((self.buffer[(i * self.N + j) * 4 + 1]/256.)*self.N)
+                # v = int((self.buffer[(i * self.N + j) * 4 + 2]/256.)*self.N)
+                # narray[(x * self.N + y) * 4] += v
+                # narray[(x * self.N + y) * 4 + 1] += v
+                # narray[(x * self.N + y) * 4 + 2] += v
+                # narray[(x * self.N + y) * 4 + 3] = 255
+        
+        glBindTexture(GL_TEXTURE_2D, self.causticMapO.id)
+        
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RED,
+                     self.N,
+                     self.N,
+                     0,
+                     GL_RED,
+                     GL_UNSIGNED_BYTE,
+                     np.ctypeslib.as_ctypes(H))
+
         glUseProgram(self.shader.id)             
         glUniformMatrix4fv(self.projMatrixHandle, 1, False, self.camera.getProjection())
         glUniformMatrix4fv(self.viewMatrixHandle, 1, False, self.camera.getModelView())
         glUniform1f(self.oceanDepthHandle, self.oceanDepth)
         
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.texture.id)
+        glBindTexture(GL_TEXTURE_2D, self.causticMapO.id)
         glUniform1i(self.textureHandle, 0)
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, self.causticTexture.id)
@@ -736,8 +869,8 @@ class oceanRenderer():
         self.status.addParameter('Ocean depth')
         self.status.addParameter('Time')
         # Ocean Render Parameters
-        self.oceanTilesX = 8
-        self.oceanTilesZ = 8
+        self.oceanTilesX = 2
+        self.oceanTilesZ = 2
         self.wireframe = False
         self.enableUpdates = True
         self.drawSurface = True               # Render the ocean surface
@@ -745,13 +878,14 @@ class oceanRenderer():
         # Ocean Parameters
         self.oceanWind = Vector2(32.0,32.0)     # Ocean wind in X,Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
-        self.oceanTileSize = 64               # Must be a power of 2    
-        self.oceanLength = 64                 # Ocean length parameter
+        self.oceanTileSize = 128               # Must be a power of 2    
+        self.oceanLength = 128                 # Ocean length parameter
         self.oceanDepth = 30.0
         self.period = 10.0                    # Period of ocean surface anim
         # OpenGL Shader
         self.oceanShader = ShaderProgram.open('shaders/ocean.shader')
         self.oceanFloorShader = ShaderProgram.open('shaders/ocean_caustics.shader')
+        self.refractionShader = ShaderProgram.open('shaders/photon_texture.shader')
         # Textures
         self.oceanFloorTexture = pyglet.image.load('images/sand.png').get_texture() 
         self.causticMapTexture = pyglet.image.load('images/lightmap.png').get_texture() 
@@ -768,6 +902,7 @@ class oceanRenderer():
         # Ocean Floor Renderable
         self.oceanFloor = OceanFloor(
                             self.oceanFloorShader,
+                            self.refractionShader,
                             self.camera,
                             self.oceanFloorTexture,
                             self.causticMapTexture,
@@ -807,11 +942,11 @@ class oceanRenderer():
         self.cameraUpdate(dt)
         
         if self.isKeyPressed(key.C):
-            self.oceanDepth += 0.05
+            self.oceanDepth += 1
             self.oceanSurface.setDepth(self.oceanDepth)
             self.oceanFloor.setDepth(self.oceanDepth)
         elif self.isKeyPressed(key.V):
-            self.oceanDepth -= 0.05
+            self.oceanDepth -= 1
             self.oceanSurface.setDepth(self.oceanDepth)
             self.oceanFloor.setDepth(self.oceanDepth)
         

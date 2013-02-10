@@ -27,6 +27,7 @@ void main(){
     gl_Position = view * model * vec4(vPosition,1.0);
     fogFactor = min(-gl_Position.z/100.0, 1.0);
     gl_Position = projection * gl_Position;
+    //gl_Position = vec4(position.x/256.0, position.z/256.0, -1.0, 1.0);
 	vec4 v = view * model * vec4(vPosition,1.0);
 	vec3 normal1 = normalize(vNormal);
     
@@ -112,7 +113,7 @@ void main()
 {
     vec4 fragColour;
 	vec3 normal1 = normalize(normal);
-    float depth1 = (depth + normal1.y) / 50.0;
+    float depth1 = (depth + normal1.y);
 
     vec4 waterColour = vec4(0.0, 0.49, 1.0 ,1.0);    
 
@@ -125,13 +126,13 @@ void main()
     
     intercept.xz *= depth1;
     
-    fragColour = texture2D(texture, texCoord);
-	fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
+    fragColour = jet(texture2D(texture, texCoord).r*4.0);
+	//fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
     
     // Cheating caustics
     //fragColour += vec4(abs(normal1.x)/4.0 + abs(normal1.z)/4.0)  * (1.0-fogFactor);
     // Computed caustics
-    fragColour += texture2D(causticMap, intercept.xz) * (1.0-fogFactor);
+    //fragColour += texture2D(causticMap, intercept.xz) * (1.0-fogFactor);
     
 	fragColour.a = 1.0;
     gl_FragColor = fragColour;
