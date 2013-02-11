@@ -58,11 +58,12 @@ void main(){
     // Calculate the interception point of the ray on the ocean floor.
     
     vIntercept = ((vPosition + vRefract * distance)+(viewportSize/2.0))/viewportSize;
-    
-    //vIntercept = abs(vPosition + vRefract * distance)/(viewportSize/2.0);
-    
-    //vIntercept = clamp(vIntercept, vec3(0.0), vec3(1.0));
-    //vIntercept = vec3((vPosition.x+64.0)/128,0.0,(vPosition.z+64.0)/128);    
+    vIntercept.y = 1/256.0;
+    if(vIntercept.x < 0.0 || vIntercept.z < 0.0 || vIntercept.x > 1.0 || vIntercept.z > 1.0)
+    {
+        vIntercept.y = 0.0;
+    }
+  
 }
 
 fragment:
@@ -73,29 +74,3 @@ void main()
 {
   gl_FragColor = vec4(vIntercept.x, vIntercept.z, vIntercept.y, 1.0);
 }
-
-
-// Refract the light direction vector using Snell's law and the ocean
-// surface normal.
-// vNormal = normalize(vNormal);
-
-// float cosTheta1 = dot(vNormal, -vLightDirection);
-// float cosTheta2 = sqrt(1.0f - (kAir2Water**2) * (1.0 - cosTheta1**2));
-
-// if cosTheta1 < 0.0
-// {
-    // vRefract = kAir2Water * vLightDirection 
-      // - (kAir2Water * cosTheta1 - cosTheta2) * vNormal;
-// }
-// else
-// {
-    // vRefract = kAir2Water * vLightDirection 
-      // + (kAir2Water * cosTheta1 - cosTheta2) * vNormal;
-// }
-
-// Now that the refraction direction vector is obtained, calculate the
-// interception position for the given depth. (line-plane intersection)
-
-// Get the length of the light ray to the intersection point
-// float d = depth / cosTheta2;
-// float B = sqrt(d**2 - depth**2)

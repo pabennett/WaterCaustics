@@ -681,6 +681,8 @@ class OceanFloor():
          
         # Need to create a view matrix for the light position.
 
+        #self.lightPosition = self.camera.position
+        
         glUniform3f(self.rsLightPositionHandle, *self.lightPosition.values())
         glUniform1f(self.rsDepthHandle, self.oceanDepth)
         glUniform1f(self.rsSizeHandle, self.N)    
@@ -790,7 +792,11 @@ class OceanFloor():
 
         #array = np.array(self.buffer,dtype=GLubyte)
 
-        H,_,_ = np.histogram2d(self.buffer[0::4], self.buffer[1::4], bins=(self.N, self.N))
+        H,_,_ = np.histogram2d(self.buffer[0::4],
+                               self.buffer[1::4],
+                               weights=self.buffer[2::4],
+                               bins=(self.N, self.N))
+        #H[0][0] = 0
         #H = ((H+np.min(H))/(np.min(H)+np.max(H)))*np.max(H)
         #H = H.reshape(self.N*self.N)   
         H = H.astype(GLubyte)
@@ -826,10 +832,10 @@ class OceanFloor():
         glUniform1f(self.oceanDepthHandle, self.oceanDepth)
         
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.causticMapO.id)
+        glBindTexture(GL_TEXTURE_2D, self.texture.id)
         glUniform1i(self.textureHandle, 0)
         glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, self.causticTexture.id)
+        glBindTexture(GL_TEXTURE_2D, self.causticMapO.id)
         glUniform1i(self.causticMapHandle, 1)
                 
         glBindVertexArray(self.VAO)
@@ -869,8 +875,8 @@ class oceanRenderer():
         self.status.addParameter('Ocean depth')
         self.status.addParameter('Time')
         # Ocean Render Parameters
-        self.oceanTilesX = 2
-        self.oceanTilesZ = 2
+        self.oceanTilesX = 1
+        self.oceanTilesZ = 1
         self.wireframe = False
         self.enableUpdates = True
         self.drawSurface = True               # Render the ocean surface

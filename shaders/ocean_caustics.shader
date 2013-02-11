@@ -126,13 +126,15 @@ void main()
     
     intercept.xz *= depth1;
     
-    fragColour = jet(texture2D(texture, texCoord).r*4.0);
-	//fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
+    //fragColour = jet(texture2D(texture, texCoord).r*4.0);
+    fragColour = texture2D(texture, texCoord);
+	fragColour *= (1.0-fogFactor) + waterColour * (fogFactor);
     
     // Cheating caustics
     //fragColour += vec4(abs(normal1.x)/4.0 + abs(normal1.z)/4.0)  * (1.0-fogFactor);
     // Computed caustics
     //fragColour += texture2D(causticMap, intercept.xz) * (1.0-fogFactor);
+    fragColour += vec4(texture2D(causticMap, texCoord).r*20.0);
     
 	fragColour.a = 1.0;
     gl_FragColor = fragColour;
