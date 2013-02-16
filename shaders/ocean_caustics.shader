@@ -27,7 +27,7 @@ void main(){
     gl_Position = view * model * vec4(vPosition,1.0);
     fogFactor = min(-gl_Position.z/100.0, 1.0);
     gl_Position = projection * gl_Position;
-    //gl_Position = vec4(position.x/256.0, position.z/256.0, -1.0, 1.0);
+    
 	vec4 v = view * model * vec4(vPosition,1.0);
 	vec3 normal1 = normalize(vNormal);
     
@@ -134,7 +134,16 @@ void main()
     //fragColour += vec4(abs(normal1.x)/4.0 + abs(normal1.z)/4.0)  * (1.0-fogFactor);
     // Computed caustics
     //fragColour += texture2D(causticMap, intercept.xz) * (1.0-fogFactor);
-    fragColour += vec4(texture2D(causticMap, texCoord).r*20.0);
+    vec4 col = vec4(texture2D(causticMap, texCoord).r*20.0);
+    //col += vec4(texture2D(causticMap, vec2(texCoord.x + (1.0/128.0),texCoord.y + (1.0/128.0))).r);
+    //col += vec4(texture2D(causticMap, vec2(texCoord.x - (1.0/128.0),texCoord.y + (1.0/128.0))).r);
+    //col += vec4(texture2D(causticMap, vec2(texCoord.x + (1.0/128.0),texCoord.y - (1.0/128.0))).r);
+    //col += vec4(texture2D(causticMap, vec2(texCoord.x - (1.0/128.0),texCoord.y - (1.0/128.0))).r);
+    if (col.r <= 0.01)
+    {
+        col = vec4(0.0);
+    }
+    fragColour += col;
     
 	fragColour.a = 1.0;
     gl_FragColor = fragColour;

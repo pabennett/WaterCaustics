@@ -629,8 +629,7 @@ class OceanFloor():
         self.rsSizeHandle = glGetUniformLocation(
                                             self.refractionShader.id,
                                             "viewportSize") 
-                       
-                
+     
         self.causticMap = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
                                                         self.N, 
                                                         self.N,
@@ -651,6 +650,9 @@ class OceanFloor():
         
         # Generate a 2D plane composed of tiled Quads
         self.verts, self.indices = Mesh2DSurface(self.N, 1.0)
+        
+        print np.max(self.verts)
+        print np.min(self.verts)
         # Directly access the positions, normals and indices of the mesh
         self.vertexCount = self.indices.size
         
@@ -688,8 +690,10 @@ class OceanFloor():
         glUniform1f(self.rsSizeHandle, self.N)    
         glBindVertexArray(self.VAO)
 
-        glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0)        
 
+        glDrawElements(GL_TRIANGLES, self.vertexCount, GL_UNSIGNED_INT, 0) 
+        
+        
         # Unbind shader and FBO
         glBindVertexArray(0)
         glUseProgram(0)   
@@ -790,30 +794,13 @@ class OceanFloor():
                 
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.buffer)
 
-        #array = np.array(self.buffer,dtype=GLubyte)
-
         H,_,_ = np.histogram2d(self.buffer[0::4],
                                self.buffer[1::4],
                                weights=self.buffer[2::4],
                                bins=(self.N, self.N))
-        #H[0][0] = 0
-        #H = ((H+np.min(H))/(np.min(H)+np.max(H)))*np.max(H)
-        #H = H.reshape(self.N*self.N)   
+                               
         H = H.astype(GLubyte)
-        
-        # narrayt = GLubyte * (self.N * self.N * 4)
-        # narray = narrayt()
-          
-        # for i in range(self.N):
-            # for j in range(self.N):
-                # x = int((self.buffer[(i * self.N + j) * 4]/256.)*self.N)
-                # y = int((self.buffer[(i * self.N + j) * 4 + 1]/256.)*self.N)
-                # v = int((self.buffer[(i * self.N + j) * 4 + 2]/256.)*self.N)
-                # narray[(x * self.N + y) * 4] += v
-                # narray[(x * self.N + y) * 4 + 1] += v
-                # narray[(x * self.N + y) * 4 + 2] += v
-                # narray[(x * self.N + y) * 4 + 3] = 255
-        
+                
         glBindTexture(GL_TEXTURE_2D, self.causticMapO.id)
         
         glTexImage2D(GL_TEXTURE_2D,
@@ -875,14 +862,14 @@ class oceanRenderer():
         self.status.addParameter('Ocean depth')
         self.status.addParameter('Time')
         # Ocean Render Parameters
-        self.oceanTilesX = 1
-        self.oceanTilesZ = 1
+        self.oceanTilesX = 5
+        self.oceanTilesZ = 5
         self.wireframe = False
         self.enableUpdates = True
         self.drawSurface = True               # Render the ocean surface
         self.drawFloor = True                 # Render the ocean floor
         # Ocean Parameters
-        self.oceanWind = Vector2(32.0,32.0)     # Ocean wind in X,Z axis
+        self.oceanWind = Vector2(64.0,128.0)     # Ocean wind in X,Z axis
         self.oceanWaveHeight = 0.0005         # The phillips spectrum parameter
         self.oceanTileSize = 128               # Must be a power of 2    
         self.oceanLength = 128                 # Ocean length parameter
