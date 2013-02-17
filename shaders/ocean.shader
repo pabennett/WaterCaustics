@@ -49,7 +49,6 @@ varying vec3 halfAngleVector;
 varying float fogFactor;
 
 uniform sampler2D texture; 
-uniform int texEnable;
 
 // Produce from the float input x (range 0.0 to 1.0) a vec4 colour using the
 // common 'Jet' colour mapping.

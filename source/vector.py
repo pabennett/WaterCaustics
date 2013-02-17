@@ -9,6 +9,7 @@ __contact__ = "www.bytebash.com"
 A simple 3-element Vector class implementing common functions
 """
 from math import sqrt
+from ctypes import c_float
 
 class Vector3():
     def __init__(self, x=0.0, y=0.0, z=0.0):
@@ -44,6 +45,8 @@ class Vector3():
         """ Return a copy of this vector as a unit vector. """
         mag = self.magnitude()
         return Vector3(self.x / mag,self.y / mag,self.z / mag)
+    def elements(self):
+        return (c_float*3)(*[self.x, self.y, self.z])
     def values(self):
         return [self.x, self.y, self.z]
         
@@ -75,5 +78,7 @@ class Vector2():
         """ Return a copy of this vector as a unit vector. """
         mag = self.magnitude()
         return Vector3(self.x / mag,self.y / mag)
+    def elements(self):
+        return (c_float*2)(*[self.x, self.y])
     def values(self):
         return [self.x, self.y]

@@ -21,10 +21,8 @@ from pyglet.window import key
 from gletools import ShaderProgram
 from math import *
 # Renderers:
-import renderer
-import water
-import camera
-import console
+
+from source import scene,camera,console
 
 # Global constants
 kScreenWidth = 864          # Window width
@@ -58,8 +56,8 @@ status.addParameter('Velocity')
                                            
 camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
 
-renderer = water.oceanRenderer(window, camera, status)
-
+#renderer = water.oceanRenderer(window, camera, status)
+renderer = scene.Scene(window, camera, status)
 #renderer = renderer.Renderer(window, camera, status)
 
 def statusUpdates(dt):

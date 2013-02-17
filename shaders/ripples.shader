@@ -20,7 +20,7 @@ uniform int tapped;
 uniform int flood;
 
 float kEPSILON = pow(2.0,-8.0);
-float kDamping = 1.0 - (3.0 * pow(2.0, -8.0));
+float kDamping = 1.0 - (10.0 * pow(2.0, -8.0));
 
 float kTexSize = 512.0;
 float kPixSize = 1.0 / kTexSize;
