@@ -55,6 +55,7 @@ class Scene():
         self.oceanTiles = Vector2(3,3)
         self.drawSurface = True
         self.drawFloor = True
+        self.enableCaustics = True
         
         # Renderables
         self.scene = []
@@ -160,6 +161,9 @@ class Scene():
         if symbol == key.X:
             self.drawFloor = not self.drawFloor
             self.ocean.drawSeaFloor = self.drawFloor
+        if symbol == key.M:
+            self.enableCaustics = not self.enableCaustics
+            self.ocean.enableCaustics = self.enableCaustics
             
     def isKeyPressed(self, symbol):
         if symbol in self.pressedKeys:

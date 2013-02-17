@@ -26,6 +26,7 @@ class Ocean():
         self.period = period                # Period of ocean surface anim
         self.drawSeaSurface = True
         self.drawSeaFloor = True
+        self.enableCaustics = True
         
         self.tileSize = tileSize
         self.tilesX = tilesX
@@ -112,7 +113,8 @@ class Ocean():
         if self.drawSeaSurface:
             self.surface.draw(dt)
         if self.drawSeaFloor:
-            self.caustics.update(dt)
+            if self.enableCaustics:
+                self.caustics.update(dt)
             self.ground.draw(dt)
         
 class Pool():

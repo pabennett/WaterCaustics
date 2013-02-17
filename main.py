@@ -56,9 +56,7 @@ status.addParameter('Velocity')
                                            
 camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
 
-#renderer = water.oceanRenderer(window, camera, status)
 renderer = scene.Scene(window, camera, status)
-#renderer = renderer.Renderer(window, camera, status)
 
 def statusUpdates(dt):
     position = tuple(int(a) for a in camera.position.values())
@@ -83,9 +81,7 @@ def on_draw(dt):
 if __name__ == '__main__':
     glClearColor(0.0, 0.49, 1.0 ,1.0);
     glViewport(0, 0, kScreenWidth, kScreenHeight)
-    #glEnable(GL_CULL_FACE)
     glEnable(GL_DEPTH_TEST)
-    #glCullFace(GL_BACK)
     
 clock.schedule_interval(on_draw, kFPS)
 clock.schedule_interval(statusUpdates, 0.2)

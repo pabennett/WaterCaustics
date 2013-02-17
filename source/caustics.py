@@ -103,7 +103,7 @@ class Caustics():
         histo,_,_ = np.histogram2d( self.buffer[0::4],
                                     self.buffer[1::4],
                                     weights=self.buffer[2::4],
-                                    bins=self.tileSize)
+                                    bins=(self.tileSize,self.tileSize))
                                
         histo = histo.astype(GLubyte)
                 
