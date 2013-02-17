@@ -182,8 +182,8 @@ class Surface():
             glUniform1i(self.textureHandle, 0)
             
         if self.causticTexture:
-            glEnable(GL_BLEND)
-            glBlendFunc(GL_ZERO, GL_SRC_COLOR)
+            #glEnable(GL_BLEND)
+            #glBlendFunc(GL_ZERO, GL_SRC_COLOR)
             glActiveTexture(GL_TEXTURE1)
             glBindTexture(GL_TEXTURE_2D, self.causticTexture.id)
             glUniform1i(self.causticTextureHandle, 1)

@@ -40,6 +40,9 @@ class Scene():
         self.camera = camera
         # Console
         self.status = statusConsole
+        self.status.addParameter('Wind')      
+        self.status.addParameter('Wave height')
+        self.status.addParameter('Ocean depth')
         self.status.addParameter('Time')
         self.time = 0.0
         # Ocean Render Parameters
@@ -47,16 +50,19 @@ class Scene():
         self.oceanDepth = 30.0
         self.enableUpdates = True
         self.oceanWind = Vector2(64.0,128.0)
-        self.oceanWaveHeight = 3.125e-5
+        self.oceanWaveHeight = 0.0005
+        self.oceanTileSize = 128               # Must be a power of 2 
         self.oceanTiles = Vector2(3,3)
         self.drawSurface = True
         self.drawFloor = True
+        
         # Renderables
         self.scene = []
         self.ocean = Ocean( self.camera,
                             depth=self.oceanDepth,
                             waveHeight=self.oceanWaveHeight,
                             wind=self.oceanWind,
+                            tileSize=self.oceanTileSize,
                             tilesX=self.oceanTiles.x,
                             tilesZ=self.oceanTiles.y)
                                                         
@@ -67,8 +73,10 @@ class Scene():
         '''
         Called periodically by main loop for onscreen text updates
         '''
+        self.status.setParameter('Wind', self.oceanWind)
+        self.status.setParameter('Wave height', self.oceanWaveHeight)
+        self.status.setParameter('Ocean depth', self.oceanDepth)
         self.status.setParameter('Time', self.time)
-        pass
 
     def draw(self, dt):
     
