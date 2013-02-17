@@ -55,7 +55,7 @@ void main()
 	fragColour *= (1.0-fogFactor) + waterColour * (fogFactor);
 
     vec4 caustic = vec4(1.0);
-    caustic = vec4(texture2D(caustics, texCoord).r*20.0);
+    caustic = vec4(texture2D(caustics, texCoord));
 
     fragColour = caustic;
     

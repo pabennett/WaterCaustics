@@ -40,7 +40,7 @@ def np2DArrayToImage(array, name="figure.png"):
     
     plt.savefig(name)
     
-def np2DArray(initialiser, rows, columns):
+def np2DArray(initialiser, rows, columns, dtype=np.float32):
     ''' Utility Function for generating numpy arrays '''
     rows = int(rows)
     columns = int(columns)
@@ -102,7 +102,47 @@ def fullscreenQuad():
     
     return vertices, indices, vertexSize
     
-
+def Pointfield2D(dimension=64, scale=1.0):
+    '''
+    Generate vertices for GL_POINT drawing
+    
+    The vertices are of the format:
+    [v0x, v0y, v0z, t0x, t0y]
+    [v1x, v1y, v1z, t1x, t1y]
+              ...
+    [v7x, v7y, v7z, t7x, t7y]
+    
+    '''
+    N = dimension
+    
+    vertexSize = ctypes.sizeof(GLfloat) * 5              
+    #vertices = np3DArray(0.0, 5, N, N, GLfloat)
+    
+    vertices = (GLfloat * (N * N * 5))(*range(N * N * 5)) 
+    
+    
+    #indices = np2DArray(0, N, N, GLshort)
+               
+    # Populate the initial positions
+    for i in range(N):
+        for j in range(N):
+            idx = (i * N + j) * 5  
+            # # Index
+            # indices[i][j] = i * N + j
+            # Position X
+            vertices[idx] = ((j-N/2.0) * scale) / (N / 2.)
+            # Position Y                        
+            vertices[idx + 1] = ((i-N/2.0) * scale) / (N / 2.)
+            # Position Z
+            vertices[idx + 2] = -1.0
+            # # Texture X
+            vertices[idx + 3] = i/float(N)
+            # # Texture Y                        
+            vertices[idx + 4] = j/float(N)
+            
+    indices = (GLshort * (N * N))(*range(N * N))   
+    
+    return vertices, indices, vertexSize
     
 def Mesh2DSurface(dimension=64, scale=1.0):
     '''

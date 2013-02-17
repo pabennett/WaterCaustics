@@ -4,7 +4,7 @@ from gletools import ShaderProgram
 
 from vector import Vector2, Vector3
 
-from utilities import frameBuffer
+from utilities import frameBuffer, Pointfield2D
 
 import numpy as np
 
@@ -21,6 +21,7 @@ class Caustics():
         
         # Compile the shader
         self.shader = ShaderProgram.open('shaders/photonMap.shader')
+        self.pointShader = ShaderProgram.open('shaders/pointMap.shader')
         
         self.photonMap = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
                                                             self.tileSize, 
@@ -49,14 +50,44 @@ class Caustics():
                                     self.shader.id,
                                     "viewportSize"
                                 )
-                                
+        
+        # Point Shader Handles
+        self.pointPositionHandle = glGetAttribLocation(
+                                    self.pointShader.id,
+                                    "vPosition"
+                                )
+        self.pointTexcoordHandle = glGetAttribLocation(
+                                    self.pointShader.id,
+                                    "vTexcoord"
+                                )
+        self.pointTextureHandle = glGetUniformLocation(
+                                    self.pointShader.id,
+                                    "texture"
+                                )
+         
         # Get a framebuffer object
         self.causticMapFBO = frameBuffer(self.photonMap)
+        self.pointMapFBO = frameBuffer(self.causticTexture)
         
         # Texbuffer
         self.buffer = (GLubyte * (self.tileSize * self.tileSize * 4))()
         
-    def renderToFBO(self):
+        # Points
+        self.points, self.pointIndices, self.vertexSize = Pointfield2D(self.tileSize, 1.0)
+
+        print self.points
+        #self.points = np.ctypeslib.as_ctypes(self.points) 
+        #self.pointIndices = np.ctypeslib.as_ctypes(self.pointIndices)
+        
+        print self.pointIndices[0], self.pointIndices[50]
+        print self.points[0], self.points[50]
+        self.pointVertVBO = GLuint()
+        glGenBuffers(1, ctypes.pointer(self.pointVertVBO))  
+        self.offsetTexcoords = ctypes.sizeof(GLfloat) * 3
+        
+
+        
+    def genPhotonMap(self):
         '''
         Bind and draw surface geometry using the photon shader and output
         the pixels to the caustic texture via a framebuffer.
@@ -77,14 +108,84 @@ class Caustics():
         #glUniform3f(self.rsLightPositionHandle, *self.lightPosition.values())
         glUniform1f(self.depthHandle, self.depth)
         glUniform1f(self.sizeHandle, self.tileSize)    
-        glBindVertexArray(self.surface.VAO)
-
-
-        glDrawElements(GL_TRIANGLES, self.surface.vertexCount, GL_UNSIGNED_INT, 0) 
         
+        glBindVertexArray(self.surface.VAO)
+        glDrawElements(GL_TRIANGLES, self.surface.vertexCount, GL_UNSIGNED_INT, 0)
         
         # Unbind shader and FBO
         glBindVertexArray(0)
+        glUseProgram(0)   
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
+        
+        # Restore viewport
+        glViewport(0, 0, self.camera.width, self.camera.height)
+        
+    def genCausticTexture(self):
+        '''
+        Bind and draw surface geometry using the photon shader and output
+        the pixels to the caustic texture via a framebuffer.
+        '''
+        # Bind FBO A/B to set Texture A/B as the output texture
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.pointMapFBO)
+            
+        # Set the viewport to the size of the texture 
+        # (we are going to render to texture)
+        glViewport(0,0, self.tileSize, self.tileSize)
+            
+        # Clear the output texture
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+             
+        # Bind the photon shader
+        glUseProgram(self.pointShader.id)
+
+        glEnable(GL_PROGRAM_POINT_SIZE)
+        glPointSize( 0.2 ) 
+        
+        
+        #print glIsEnabled(GL_PROGRAM_POINT_SIZE)
+
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, self.photonMap.id)
+        glUniform1i(self.pointTextureHandle, 0)
+        
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_ZERO, GL_SRC_COLOR)
+            
+        # Set up vertices VBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.pointVertVBO)  
+        
+        glBufferData(   GL_ARRAY_BUFFER,
+                        ctypes.sizeof(self.points),
+                        self.points,
+                        GL_STATIC_DRAW)
+    
+        # Set up vertex attributes
+        glEnableVertexAttribArray(self.pointPositionHandle)
+        glVertexAttribPointer(  self.pointPositionHandle,
+                                3,
+                                GL_FLOAT,
+                                GL_FALSE,
+                                self.vertexSize,
+                                0)
+                                
+        glEnableVertexAttribArray(self.pointTexcoordHandle)          
+        glVertexAttribPointer(  self.pointTexcoordHandle,
+                                2,
+                                GL_FLOAT,
+                                GL_FALSE,
+                                self.vertexSize,
+                                self.offsetTexcoords)
+
+        glDrawElements(GL_POINTS,
+                       len(self.pointIndices), 
+                       GL_UNSIGNED_SHORT,
+                       self.pointIndices)
+        
+        
+        # Disable arrays
+        glDisableVertexAttribArray(self.pointPositionHandle)
+        glDisableVertexAttribArray(self.pointTexcoordHandle)
+        # Unbind shader and FBO
         glUseProgram(0)   
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
         
@@ -131,8 +232,9 @@ class Caustics():
         Regenerate the caustic texture using the surface normals, only needs
         calling if the surface normals or light position has changed.
         '''
-        self.renderToFBO()
-        self.histogram()
+        self.genPhotonMap()
+        self.genCausticTexture()
+        #self.histogram()
         # The caustic texture is now updated
         
     def setDepth(self, depth):
