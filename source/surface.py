@@ -4,6 +4,7 @@ from vector import Vector2, Vector3
 from matrix16 import Matrix16
 from utilities import *
 from ctypes import pointer, sizeof
+
 class Surface():
     '''
     The ocean surface is formed from a 2D tiled mesh where the vertices are 
@@ -182,8 +183,6 @@ class Surface():
             glUniform1i(self.textureHandle, 0)
             
         if self.causticTexture:
-            #glEnable(GL_BLEND)
-            #glBlendFunc(GL_ZERO, GL_SRC_COLOR)
             glActiveTexture(GL_TEXTURE1)
             glBindTexture(GL_TEXTURE_2D, self.causticTexture.id)
             glUniform1i(self.causticTextureHandle, 1)

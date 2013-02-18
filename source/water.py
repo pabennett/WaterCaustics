@@ -37,7 +37,7 @@ class Ocean():
         
         self.surfaceShader = ShaderProgram.open('shaders/ocean.shader')
         self.groundShader = ShaderProgram.open('shaders/ocean_caustics.shader')
-        self.oceanFloorTexture = image.load('images/tiles.png').get_texture() 
+        self.oceanFloorTexture = image.load('images/sand.png').get_texture() 
         
         
         # Caustic texture

@@ -22,7 +22,7 @@ void main(){
     position = vPosition;
     normal = vNormal;
     gl_Position = view * model * vec4(vPosition,1.0);
-    fogFactor = min(-gl_Position.z/100.0, 1.0);
+    fogFactor = min(-gl_Position.z/300.0, 1.0);
     gl_Position = projection * gl_Position;
 
     texCoord = vTexCoord;
@@ -52,17 +52,12 @@ void main()
     vec4 fragColour;
     
     fragColour = texture2D(texture, texCoord);
-	fragColour *= (1.0-fogFactor) + waterColour * (fogFactor);
+	fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
 
-    vec4 caustic = vec4(1.0);
-    caustic = vec4(texture2D(caustics, texCoord));
-
-    fragColour = caustic;
+    vec4 caustic = vec4(texture2D(caustics, texCoord)) * (1.0-fogFactor);
     
-	//fragColour.a = 0.1 + caustic.r;
+    fragColour += caustic;
     fragColour.a = 1.0;
-    
-    
-    
+
     gl_FragColor = fragColour;
 }

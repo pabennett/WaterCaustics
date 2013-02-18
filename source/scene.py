@@ -52,7 +52,7 @@ class Scene():
         self.oceanWind = Vector2(64.0,128.0)
         self.oceanWaveHeight = 0.0005
         self.oceanTileSize = 128               # Must be a power of 2 
-        self.oceanTiles = Vector2(3,3)
+        self.oceanTiles = Vector2(10,10)
         self.drawSurface = True
         self.drawFloor = True
         self.enableCaustics = True

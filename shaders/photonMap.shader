@@ -63,7 +63,7 @@ void main(){
     
     vIntercept = ((vPosition + vRefract * distance)+(viewportSize/2.0))/viewportSize;
     
-    vIntercept.y = 1/256.0; // Intensity contribution is 1 8bit level.
+    vIntercept.y = 2/256.0; // Intensity contribution in 8bit levels.
     
     if(vIntercept.x < -1.0/viewportSize || vIntercept.z < -1.0/viewportSize || vIntercept.x > 1.0+(1.0/viewportSize) || vIntercept.z > 1.0+(1.0/viewportSize))
     {

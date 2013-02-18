@@ -25,8 +25,8 @@ from math import *
 from source import scene,camera,console
 
 # Global constants
-kScreenWidth = 864          # Window width
-kScreenHeight= 864          # Window height
+kScreenWidth = 1920          # Window width
+kScreenHeight= 1200          # Window height
 kFullScreenMode = False     # Fulscreen mode
 kMouseFocus = True          # Window holds mouse focus
 kDesiredFPS = 120           # Desired FPS (not guaranteed)
@@ -79,9 +79,13 @@ def on_draw(dt):
 
 # Initialisation
 if __name__ == '__main__':
-    glClearColor(0.0, 0.49, 1.0 ,1.0);
+    glClearColor(0.0, 0.49, 1.0 ,1.0)
     glViewport(0, 0, kScreenWidth, kScreenHeight)
     glEnable(GL_DEPTH_TEST)
+    
+    glEnable(GL_PROGRAM_POINT_SIZE)
+    #glEnable(GL_POINT_SMOOTH)
+    #glPointSize( 1) 
     
 clock.schedule_interval(on_draw, kFPS)
 clock.schedule_interval(statusUpdates, 0.2)

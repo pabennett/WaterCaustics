@@ -4,7 +4,7 @@ from gletools import ShaderProgram
 
 from vector import Vector2, Vector3
 
-from utilities import frameBuffer, Pointfield2D
+from utilities import frameBuffer, Pointfield2D, Mesh2DSurface
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class Caustics():
                                     self.shader.id,
                                     "vPosition"
                                 )
-        self.tileSizeormalHandle = glGetAttribLocation(
+        self.normalHandle = glGetAttribLocation(
                                     self.shader.id,
                                     "vNormal"
                                 )                                        
@@ -85,13 +85,69 @@ class Caustics():
         glGenBuffers(1, ctypes.pointer(self.pointVertVBO))  
         self.offsetTexcoords = ctypes.sizeof(GLfloat) * 3
         
+        # Surface Mesh Geometry
+        self.verts, self.indices = Mesh2DSurface(self.tileSize, 1.0)
+        self.setupVAO()
+        
+    def setupVAO(self):
+        '''
+        Perform initial setup for this object's vertex array object, which
+        stores the vertex VBO and indices VBO. This is used to draw the surface
+        geometry for computing caustics in the shader.
+        '''
+        # Vertex Array Object for Position and Normal VBOs
+        self.VAO = GLuint()
+        glGenVertexArrays(1,ctypes.pointer(self.VAO))
+        glBindVertexArray(self.VAO)
+        
+        # Vertex Buffer Objects (Positions Normals and Indices)
+        self.vertVBO = GLuint()
+        self.indexVBO = GLuint()
+        glGenBuffers(1, ctypes.pointer(self.vertVBO))
+        glGenBuffers(1, ctypes.pointer(self.indexVBO))
+                
+        indicesGL = np.ctypeslib.as_ctypes(self.indices)
+        vertsGL = np.ctypeslib.as_ctypes(self.verts)
+        vertexSize = ctypes.sizeof(GLfloat) * 8
+        offsetNormals = ctypes.sizeof(GLfloat) * 3
+        offsetTexture = ctypes.sizeof(GLfloat) * 6
 
+        # Set up vertices VBO (associated with VAO)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)      
+        glBufferData(GL_ARRAY_BUFFER, ctypes.sizeof(vertsGL), vertsGL, GL_STATIC_DRAW)
+        # Positions
+        glEnableVertexAttribArray(self.positionHandle) 
+        glVertexAttribPointer(self.positionHandle, 3, GL_FLOAT, GL_FALSE, vertexSize, 0)
+        # Normals
+        glEnableVertexAttribArray(self.normalHandle) 
+        glVertexAttribPointer(self.normalHandle, 3, GL_FLOAT, GL_FALSE, vertexSize, offsetNormals)
+
+        # Set up indices VBO (associated with VAO)
+        # Indices
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.indexVBO)      
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, ctypes.sizeof(indicesGL), indicesGL, GL_STATIC_DRAW)
+
+        glBindVertexArray(0)
+        
         
     def genPhotonMap(self):
         '''
         Bind and draw surface geometry using the photon shader and output
         the pixels to the caustic texture via a framebuffer.
         '''
+        
+        # Get updated surface geometry
+        self.verts[::,::,3] = self.surface.verts[::,::,3] # Normal X
+        self.verts[::,::,4] = self.surface.verts[::,::,4] # Normal Y
+        self.verts[::,::,5] = self.surface.verts[::,::,5] # Normal Z
+        # Update the vertex VBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)
+        
+        glBufferData(GL_ARRAY_BUFFER, 
+                     self.verts.size*4, 
+                     np.ctypeslib.as_ctypes(self.verts),
+                     GL_STATIC_DRAW)
+        
         # Bind FBO A/B to set Texture A/B as the output texture
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.causticMapFBO)
             
@@ -109,7 +165,7 @@ class Caustics():
         glUniform1f(self.depthHandle, self.depth)
         glUniform1f(self.sizeHandle, self.tileSize)    
         
-        glBindVertexArray(self.surface.VAO)
+        glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, self.surface.vertexCount, GL_UNSIGNED_INT, 0)
         
         # Unbind shader and FBO
@@ -131,25 +187,20 @@ class Caustics():
         # Set the viewport to the size of the texture 
         # (we are going to render to texture)
         glViewport(0,0, self.tileSize, self.tileSize)
-            
+        glClearColor(0.0, 0.0, 0.0 ,1.0)
         # Clear the output texture
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
              
         # Bind the photon shader
         glUseProgram(self.pointShader.id)
 
-        glEnable(GL_PROGRAM_POINT_SIZE)
-        glPointSize( 0.2 ) 
-        
-        
-        #print glIsEnabled(GL_PROGRAM_POINT_SIZE)
-
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.photonMap.id)
         glUniform1i(self.pointTextureHandle, 0)
         
+        glDisable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
-        glBlendFunc(GL_ZERO, GL_SRC_COLOR)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE)
             
         # Set up vertices VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.pointVertVBO)  
@@ -188,7 +239,9 @@ class Caustics():
         # Unbind shader and FBO
         glUseProgram(0)   
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
-        
+        glDisable(GL_BLEND)
+        glEnable(GL_DEPTH_TEST)
+        glClearColor(0.0, 0.49, 1.0 ,1.0)
         # Restore viewport
         glViewport(0, 0, self.camera.width, self.camera.height)
         
