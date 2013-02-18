@@ -44,6 +44,9 @@ class Scene():
         self.status.addParameter('Wave height')
         self.status.addParameter('Ocean depth')
         self.status.addParameter('Time')
+        self.status.addParameter('Caustics intensity')
+        self.status.addParameter('Caustics scale')
+        
         self.time = 0.0
         # Ocean Render Parameters
         self.wireframe = False
@@ -56,6 +59,8 @@ class Scene():
         self.drawSurface = True
         self.drawFloor = True
         self.enableCaustics = True
+        self.causticIntensity = 2.0
+        self.causticPhotonScale = 4.0
         
         # Renderables
         self.scene = []
@@ -65,7 +70,9 @@ class Scene():
                             wind=self.oceanWind,
                             tileSize=self.oceanTileSize,
                             tilesX=self.oceanTiles.x,
-                            tilesZ=self.oceanTiles.y)
+                            tilesZ=self.oceanTiles.y,
+                            photonScale=self.causticPhotonScale,
+                            photonIntensity=self.causticIntensity)
                                                         
         self.scene.append(self.ocean)
 
@@ -78,6 +85,8 @@ class Scene():
         self.status.setParameter('Wave height', self.oceanWaveHeight)
         self.status.setParameter('Ocean depth', self.oceanDepth)
         self.status.setParameter('Time', self.time)
+        self.status.setParameter('Caustics intensity', self.causticIntensity)
+        self.status.setParameter('Caustics scale', self.causticPhotonScale) 
 
     def draw(self, dt):
     
@@ -88,6 +97,21 @@ class Scene():
         elif self.isKeyPressed(key.V):
             self.oceanDepth -= 1
             self.ocean.setDepth(self.oceanDepth)
+    
+        if self.isKeyPressed(key.U):
+            self.causticPhotonScale += 0.1
+            self.ocean.setCausticPhotonScale(self.causticPhotonScale)
+        if self.isKeyPressed(key.J):
+            if self.causticPhotonScale > 0.1:
+                self.causticPhotonScale -= 0.1
+                self.ocean.setCausticPhotonScale(self.causticPhotonScale)
+        if self.isKeyPressed(key.Y):
+            self.causticIntensity += 0.1
+            self.ocean.setCausticPhotonIntensity(self.causticIntensity)
+        if self.isKeyPressed(key.H):
+            if self.causticIntensity > 0.1:
+                self.causticIntensity -= 0.1
+                self.ocean.setCausticPhotonIntensity(self.causticIntensity)
     
     
         # Update camera orientation and position
@@ -164,6 +188,8 @@ class Scene():
         if symbol == key.M:
             self.enableCaustics = not self.enableCaustics
             self.ocean.enableCaustics = self.enableCaustics
+
+            
             
     def isKeyPressed(self, symbol):
         if symbol in self.pressedKeys:

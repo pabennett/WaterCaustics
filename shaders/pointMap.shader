@@ -8,6 +8,7 @@ varying vec2 texcoord;
 varying float intensity;
 
 uniform sampler2D texture;
+uniform float photonScale;
 
 void main(){
 
@@ -25,7 +26,7 @@ void main(){
     position.z = -1.0;
     
     gl_Position = vec4(position, 1.0);
-    gl_PointSize = 4.0;
+    gl_PointSize = photonScale;
 }
 
 fragment:

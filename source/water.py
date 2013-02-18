@@ -18,7 +18,9 @@ class Ocean():
                     depth=30.0,
                     waveHeight=3.125e-5,
                     wind=Vector2(64.0,128.0),
-                    period=10.0):
+                    period=10.0,
+                    photonScale=4.0,
+                    photonIntensity=2.0):
     
         self.wind = wind                    # Ocean wind in X,Z axis
         self.waveHeight = waveHeight        # The phillips spectrum parameter
@@ -27,6 +29,8 @@ class Ocean():
         self.drawSeaSurface = True
         self.drawSeaFloor = True
         self.enableCaustics = True
+        self.photonIntensity = photonIntensity
+        self.photonScale = photonScale
         
         self.tileSize = tileSize
         self.tilesX = tilesX
@@ -69,7 +73,9 @@ class Ocean():
         self.caustics = Caustics (  self.camera,
                                     self.surface,
                                     self.oceanDepth,
-                                    self.causticTexture
+                                    self.causticTexture,
+                                    self.photonScale,
+                                    self.photonIntensity,
                                  )
         
         # The sea bed, an undisturbed mesh
@@ -83,6 +89,14 @@ class Ocean():
                                 tilesZ=self.tilesZ,
                                 scale=self.scale, 
                                 offset=Vector3(0.0,0.0,0.0))
+                                
+    def setCausticPhotonIntensity(self, intensity):
+        self.photonIntensity = intensity
+        self.caustics.photonIntensity = self.photonIntensity
+    def setCausticPhotonScale(self, scale):
+        self.photonScale = scale
+        self.caustics.photonScale = self.photonScale
+                                
     def setDepth(self, depth):
         self.oceanDepth = depth
         self.caustics.setDepth(self.oceanDepth)

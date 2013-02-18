@@ -8,6 +8,7 @@ attribute vec3 vNormal;
 uniform vec3 vLightPosition;
 uniform float depth;
 uniform float viewportSize;
+uniform float photonIntensity;
 
 // To Fragment Shader
 varying vec3 vIntercept;
@@ -63,7 +64,7 @@ void main(){
     
     vIntercept = ((vPosition + vRefract * distance)+(viewportSize/2.0))/viewportSize;
     
-    vIntercept.y = 2/256.0; // Intensity contribution in 8bit levels.
+    vIntercept.y = photonIntensity/256.0; // Intensity contribution
     
     if(vIntercept.x < -1.0/viewportSize || vIntercept.z < -1.0/viewportSize || vIntercept.x > 1.0+(1.0/viewportSize) || vIntercept.z > 1.0+(1.0/viewportSize))
     {

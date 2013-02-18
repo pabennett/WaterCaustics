@@ -11,7 +11,13 @@ import numpy as np
 import ctypes
 
 class Caustics():
-    def __init__(self, camera, surface, depth, causticTexture):
+    def __init__(self,
+                camera,
+                surface,
+                depth,
+                causticTexture,
+                photonScale=4.0,
+                photonIntensity=2.0):
         self.surface = surface
         self.depth = depth
         self.camera = camera
@@ -28,6 +34,9 @@ class Caustics():
                                                             self.tileSize,
                                                             GL_RGBA)
         self.causticTexture = causticTexture     
+        
+        self.photonIntensity = photonIntensity
+        self.photonScale = photonScale
         
         # Photon Texture Shader Handles
         self.positionHandle = glGetAttribLocation(
@@ -50,6 +59,11 @@ class Caustics():
                                     self.shader.id,
                                     "viewportSize"
                                 )
+        self.photonIntensityHandle = glGetUniformLocation(
+                                    self.shader.id,
+                                    "photonIntensity"
+                                )
+                                
         
         # Point Shader Handles
         self.pointPositionHandle = glGetAttribLocation(
@@ -63,6 +77,10 @@ class Caustics():
         self.pointTextureHandle = glGetUniformLocation(
                                     self.pointShader.id,
                                     "texture"
+                                )
+        self.photonScaleHandle = glGetUniformLocation(
+                                    self.pointShader.id,
+                                    "photonScale"
                                 )
          
         # Get a framebuffer object
@@ -164,7 +182,8 @@ class Caustics():
         #glUniform3f(self.rsLightPositionHandle, *self.lightPosition.values())
         glUniform1f(self.depthHandle, self.depth)
         glUniform1f(self.sizeHandle, self.tileSize)    
-        
+        glUniform1f(self.photonIntensityHandle, self.photonIntensity)
+
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, self.surface.vertexCount, GL_UNSIGNED_INT, 0)
         
@@ -197,6 +216,7 @@ class Caustics():
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.photonMap.id)
         glUniform1i(self.pointTextureHandle, 0)
+        glUniform1f(self.photonScaleHandle, self.photonScale)
         
         glDisable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
