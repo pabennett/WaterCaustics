@@ -72,24 +72,6 @@ Tessendorf FFT synthesis renderer:
 +   **NUM_7/NUM_8** Double/halve phillips spectrum factor (affects wave height)
 +   **L** Toggle wireframe
 
-FBO ping-pong / Sombrero renderer:
-
-+   **P** Reload the shaders. Shader hotloading is handy for debugging and tweaking.
-+   **H** Lower the height of the water plane
-+   **G** Raise the height of the water plane (maximum of 1.0)
-+   **T** Raise the wave factor (wave function mode only)
-+   **Y** Lower the wave factor (wave function mode only)
-+   **J** Raise the brightness of the water caustics
-+   **K** Lower the brightness of the water caustics
-+   **NUM_2** Enable/Disable display of the wave function heightmap
-+   **NUM_3** Enable/Disable display of the wave function bumpmap
-+   **NUM_4** Enable/Disable Refraction
-+   **NUM_5** Toggle render mode between ripple and wave function mode
-+   **MOUSE** Left click when in ripple mode to cause ripples at the mouse cursor
-+   **SPACE** Enable or disable the camera system
-+   **WSAD**  Move around in camera mode
-+   **QE**    Change roll in camera mode
-
 Acknowledgements
 ----------------
 
