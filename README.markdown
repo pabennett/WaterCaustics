@@ -1,7 +1,7 @@
 WaterCaustics - Rendering Experiments
 ==============================
 
-![WaterCaustics](http://www.bytebash.com/files/water_caustics.png "Water Caustics")
+![WaterCaustics](http://www.bytebash.com/files/caustics.png "Water Caustics")
 
 Description
 -----------
@@ -31,11 +31,20 @@ these are:
 + Sombrero function (a composite creates something resembling a water surface).
 + Tessendorf's FFT synthesis technique.
 
-The renderer instance in main.py uses the Tessendorf ocean surface simulator by
+The scene instance in main.py uses the Tessendorf ocean surface simulator by
 default.
 
-There is currently only one caustics generator implemented, which is the one
-detailed in Nvidia's GPU gems series (link below). It still needs some work too!
+Caustic generation is performed by tracing the path of refracted light rays
+through the water's surface and then calculating the interception point on the
+sea bed at a user specified depth. The interception points are recorded in a
+"Photon map" which is then passed to a shader that draws GL_POINTS at the photon
+positions; the accumulation of photons at the same position on the sea bed
+creates a caustic pattern.
+
+How to Run
+----------
+
+Install the required dependencies and then run **main.py**!
 
 Controls
 --------
@@ -45,9 +54,13 @@ in use:
 
 Tessendorf FFT synthesis renderer:
 
-+   **P** Reload the shaders. Shader hotloading is handy for debugging and tweaking.
++   **M** Enable or Disable the Caustics Engine
 +   **V** Lower the height of the water plane
 +   **C** Raise the height of the water plane
++   **U** Increase the scale of the caustic photons
++   **J** Decrease the scale of the caustic photons
++   **Y** Increase the intensity of the caustics
++   **H** Decrease the intensity of the caustics
 +   **Z** Toggle drawing ocean surface
 +   **X** Toggle drawing ocean floor
 +   **MOUSE** Look
@@ -80,5 +93,7 @@ FBO ping-pong / Sombrero renderer:
 Acknowledgements
 ----------------
 
-The caustics generator is based an Nvidia GPU Gems article on caustics, which can be found [here](http://http.developer.nvidia.com/GPUGems/gpugems_ch02.html "GPU Gems")  
+Thanks to Keith Lantz for his [excellent guide](http://www.keithlantz.net/2011/10/ocean-simulation-part-one-using-the-discrete-fourier-transform/ "Ocean Simulation")
+on Tessendorf's ocean simulation technique
+
 The sand and tile textures are by Patrick Hoesly on [Flickr](http://www.flickr.com/photos/zooboing/ "Zooboing") 

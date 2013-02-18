@@ -153,8 +153,6 @@ class Scene():
         # Set the pressedKeys dict to allow us to have while-key-pressed actions
         self.pressedKeys[symbol] = True
         
-        if symbol == key.P:
-            self.loadShaders()
         if symbol == key.L:
             self.wireframe = not self.wireframe
         if symbol == key.SPACE:
