@@ -46,7 +46,7 @@ class Surface():
         self.causticTextureHandle = glGetUniformLocation(self.shader.id, "caustics")      
         # Generate a 2D plane composed of tiled Quads
         # Directly access the positions, normals and indices of the mesh
-        self.verts, self.indices = Mesh2DSurface(self.tileSize, 1.0)
+        self.verts, self.indices = Mesh2DSurface(self.tileSize, self.scale)
         # Keep a copy of the original vertex positions and apply displacements
         # from the heightfield to them to produce new vertex positions
         self.v0 = self.verts.copy()

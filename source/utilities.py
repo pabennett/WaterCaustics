@@ -115,9 +115,7 @@ def Pointfield2D(dimension=64, scale=1.0):
     '''
     N = dimension
     
-    vertexSize = ctypes.sizeof(GLfloat) * 8              
-    #vertices = np3DArray(0.0, 5, N, N, GLfloat)
-    
+    vertexSize = ctypes.sizeof(GLfloat) * 8                  
     vertices = (GLfloat * (N * N * 8))(*range(N * N * 8)) 
     
     

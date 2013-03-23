@@ -84,10 +84,10 @@ class Ocean():
                                 texture=self.oceanFloorTexture,
                                 causticTexture=self.causticTexture,
                                 heightfield=None,
-                                tileSize=self.tileSize, 
+                                tileSize=1, 
                                 tilesX=self.tilesX,
                                 tilesZ=self.tilesZ,
-                                scale=self.scale, 
+                                scale=self.scale * self.tileSize, 
                                 offset=Vector3(0.0,0.0,0.0))
                                 
     def setCausticPhotonIntensity(self, intensity):

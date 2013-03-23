@@ -85,12 +85,6 @@ class Caustics():
         # Points
         self.points, self.pointIndices, self.vertexSize = Pointfield2D(self.tileSize, 1.0)
 
-        print self.points
-        #self.points = np.ctypeslib.as_ctypes(self.points) 
-        #self.pointIndices = np.ctypeslib.as_ctypes(self.pointIndices)
-        
-        print self.pointIndices[0], self.pointIndices[50]
-        print self.points[0], self.points[50]
         self.pointVertVBO = GLuint()
         glGenBuffers(1, ctypes.pointer(self.pointVertVBO))  
         self.offsetTexcoords = ctypes.sizeof(GLfloat) * 3
@@ -150,7 +144,7 @@ class Caustics():
         self.verts[::,::,3] = self.surface.verts[::,::,3] # Normal X
         self.verts[::,::,4] = self.surface.verts[::,::,4] # Normal Y
         self.verts[::,::,5] = self.surface.verts[::,::,5] # Normal Z
-        
+                
         # Update the vertex VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)
         
@@ -185,12 +179,7 @@ class Caustics():
         
         glBindVertexArray(self.VAO)
         glDrawElements(GL_POINTS, self.surface.vertexCount, GL_UNSIGNED_INT, 0)            
-        # for i in range(3):
-            # for j in range(3):
-                # glUniform1f( self.offsetXHandle,(-1+i)*self.tileSize)
-                # glUniform1f( self.offsetYHandle,(-1+j)*self.tileSize)
-                # glDrawElements(GL_POINTS,self.surface.vertexCount,GL_UNSIGNED_INT, 0)      
-        
+
         # Unbind shader and FBO
         glBindVertexArray(0)
         glUseProgram(0)   
