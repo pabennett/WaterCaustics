@@ -18,7 +18,7 @@ class Ocean():
                     depth=30.0,
                     waveHeight=3.125e-5,
                     wind=Vector2(64.0,128.0),
-                    period=10.0,
+                    period=600.0,
                     photonScale=4.0,
                     photonIntensity=2.0):
     

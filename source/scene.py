@@ -50,12 +50,12 @@ class Scene():
         self.time = 0.0
         # Ocean Render Parameters
         self.wireframe = False
-        self.oceanDepth = 30.0
+        self.oceanDepth = 450.0
         self.enableUpdates = True
-        self.oceanWind = Vector2(64.0,128.0)
-        self.oceanWaveHeight = 6.25e-5
-        self.oceanTileSize = 128               # Must be a power of 2 
-        self.oceanTiles = Vector2(4,4)
+        self.oceanWind = Vector2(128.0,128.0)
+        self.oceanWaveHeight = 1.953125e-06
+        self.oceanTileSize = 256               # Must be a power of 2 
+        self.oceanTiles = Vector2(1,1)
         self.drawSurface = True
         self.drawFloor = True
         self.enableCaustics = True
