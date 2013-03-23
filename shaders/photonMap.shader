@@ -9,9 +9,13 @@ uniform vec3 vLightPosition;
 uniform float depth;
 uniform float viewportSize;
 uniform float photonIntensity;
+uniform float photonScale;
+
+uniform float offsetX;
+uniform float offsetY;
 
 // To Fragment Shader
-varying vec3 vIntercept;
+varying float intensity;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -30,6 +34,11 @@ void main(){
                        vPosition.z/(viewportSize/2.0), -1.0, 1.0);
            
     
+    
+    vec3 position =  vPosition;
+    position.x += offsetX;
+    position.y += offsetY;
+    
     // gl_Position is the ocean surface position vector
     // vNormal is the normal of the ocean surface at gl_Position
     // lightPosition is the position of the light source in world space
@@ -45,38 +54,58 @@ void main(){
     // Depth
     
     // Get the light direction vector    
-    vec3 vLightDirection = vLightPosition - vPosition;
+    vec3 vLightDirection = vLightPosition - position;
     vLightDirection = vec3(0.0,1.0,0.0);
     
     vLightDirection = normalize(vLightDirection);
-    vNormal = normalize(vNormal);
+    vec3 normal = normalize(vNormal);
     
-    vec3 vRefract = refract(vLightDirection, vNormal, kAir2Water);
+    vec3 vRefract = refract(vLightDirection, normal, kAir2Water);
     
     
     // Calculate the distance along the Refraction ray from the ocean surface
     // to the interception point on the ocean floor.
-    float depth2 = (depth + vPosition.y) / 50.0;
+    float depth2 = (depth + position.y) / 50.0;
     depth2 *= 10;
-    float distance = (depth2 - vPosition.y) / vRefract.y;
+    float distance = (depth2 - position.y) / vRefract.y;
     
     // Calculate the interception point of the ray on the ocean floor.
-    
-    vIntercept = ((vPosition + vRefract * distance)+(viewportSize/2.0))/viewportSize;
+    float vs = viewportSize * 0.9;
+    vec3 vIntercept = ((position + vRefract * distance)+(vs/2.0))/vs;
     
     vIntercept.y = photonIntensity/256.0; // Intensity contribution
-    
-    if(vIntercept.x < -1.0/viewportSize || vIntercept.z < -1.0/viewportSize || vIntercept.x > 1.0+(1.0/viewportSize) || vIntercept.z > 1.0+(1.0/viewportSize))
-    {
-        vIntercept.y = 0.0;
+    //vIntercept.y = 0.2;
+      
+    vIntercept.x = mod(vIntercept.x, 1.0);
+    vIntercept.z = mod(vIntercept.z, 1.0);
+           
+    if (vIntercept.x < 0.0) {
+        vIntercept.x = 1.0 - (abs(vIntercept.x));
+        //vIntercept.y = 1.0;
     }
+    
+    if (vIntercept.z < 0.0) {
+        vIntercept.z = 1.0 - (abs(vIntercept.z));
+        //vIntercept.y = 1.0;
+    }
+         
+    //if(vIntercept.x < -1.0/viewportSize || vIntercept.z < -1.0/viewportSize || vIntercept.x > 1.0+(1.0/viewportSize) || vIntercept.z > 1.0+(1.0/viewportSize))
+    //{
+    //    vIntercept.y = 0.0;
+    //}
+    
+    intensity = vIntercept.y;
+    gl_Position.x = (vIntercept.x*2.0)-1.0;
+    gl_Position.y = (vIntercept.z*2.0)-1.0;
+    gl_Position.z = 0.0;
+    gl_PointSize = photonScale;
 }
 
 fragment:
 
-varying vec3 vIntercept;
+varying float intensity;
 
 void main()
 {
-  gl_FragColor = vec4(vIntercept.x, vIntercept.z, vIntercept.y, 1.0);
+  gl_FragColor = vec4(1.0,1.0,1.0,intensity);
 }

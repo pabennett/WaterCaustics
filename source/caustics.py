@@ -3,6 +3,7 @@ from pyglet.gl import *
 from gletools import ShaderProgram
 
 from vector import Vector2, Vector3
+from matrix16 import Matrix16
 
 from utilities import frameBuffer, Pointfield2D, Mesh2DSurface
 
@@ -63,25 +64,16 @@ class Caustics():
                                     self.shader.id,
                                     "photonIntensity"
                                 )
-                                
-        
-        # Point Shader Handles
-        self.pointPositionHandle = glGetAttribLocation(
-                                    self.pointShader.id,
-                                    "vPosition"
-                                )
-        self.pointTexcoordHandle = glGetAttribLocation(
-                                    self.pointShader.id,
-                                    "vTexcoord"
-                                )
-        self.pointTextureHandle = glGetUniformLocation(
-                                    self.pointShader.id,
-                                    "texture"
-                                )
         self.photonScaleHandle = glGetUniformLocation(
-                                    self.pointShader.id,
+                                    self.shader.id,
                                     "photonScale"
                                 )
+                                
+                                
+        self.offsetXHandle = glGetUniformLocation(self.shader.id, "offsetX")
+        self.offsetYHandle = glGetUniformLocation(self.shader.id, "offsetY")
+                                
+        self.modelMatrix = Matrix16()
          
         # Get a framebuffer object
         self.causticMapFBO = frameBuffer(self.photonMap)
@@ -158,6 +150,7 @@ class Caustics():
         self.verts[::,::,3] = self.surface.verts[::,::,3] # Normal X
         self.verts[::,::,4] = self.surface.verts[::,::,4] # Normal Y
         self.verts[::,::,5] = self.surface.verts[::,::,5] # Normal Z
+        
         # Update the vertex VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.vertVBO)
         
@@ -167,13 +160,14 @@ class Caustics():
                      GL_STATIC_DRAW)
         
         # Bind FBO A/B to set Texture A/B as the output texture
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.causticMapFBO)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.pointMapFBO)
             
         # Set the viewport to the size of the texture 
         # (we are going to render to texture)
         glViewport(0,0, self.tileSize, self.tileSize)
             
         # Clear the output texture
+        glClearColor(0.0, 0.0, 0.0 ,1.0)
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
              
         # Bind the photon shader
@@ -183,15 +177,28 @@ class Caustics():
         glUniform1f(self.depthHandle, self.depth)
         glUniform1f(self.sizeHandle, self.tileSize)    
         glUniform1f(self.photonIntensityHandle, self.photonIntensity)
-
+        glUniform1f(self.photonScaleHandle, self.photonScale)
+        
+        glDisable(GL_DEPTH_TEST)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE)
+        
         glBindVertexArray(self.VAO)
-        glDrawElements(GL_TRIANGLES, self.surface.vertexCount, GL_UNSIGNED_INT, 0)
+        glDrawElements(GL_POINTS, self.surface.vertexCount, GL_UNSIGNED_INT, 0)            
+        # for i in range(3):
+            # for j in range(3):
+                # glUniform1f( self.offsetXHandle,(-1+i)*self.tileSize)
+                # glUniform1f( self.offsetYHandle,(-1+j)*self.tileSize)
+                # glDrawElements(GL_POINTS,self.surface.vertexCount,GL_UNSIGNED_INT, 0)      
         
         # Unbind shader and FBO
         glBindVertexArray(0)
         glUseProgram(0)   
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)  
         
+        glDisable(GL_BLEND)
+        glEnable(GL_DEPTH_TEST)
+        glClearColor(0.0, 0.49, 1.0 ,1.0)
         # Restore viewport
         glViewport(0, 0, self.camera.width, self.camera.height)
         
@@ -216,7 +223,7 @@ class Caustics():
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.photonMap.id)
         glUniform1i(self.pointTextureHandle, 0)
-        glUniform1f(self.photonScaleHandle, self.photonScale)
+
         
         glDisable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
@@ -306,7 +313,7 @@ class Caustics():
         calling if the surface normals or light position has changed.
         '''
         self.genPhotonMap()
-        self.genCausticTexture()
+        #self.genCausticTexture()
         #self.histogram()
         # The caustic texture is now updated
         
