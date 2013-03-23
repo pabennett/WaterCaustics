@@ -16,7 +16,7 @@ mydata_files = [('images', image_files),('shaders', shader_files)]
 # Setup args that apply to all setups, including ordinary distutils.
 setup_args = dict(
     data_files=mydata_files)
-    
+   
 # py2exe options
 try:
     import py2exe
@@ -24,9 +24,15 @@ try:
         windows=[dict(
             script=script_file
         )],
-        options={"py2exe": {
-                            'bundle_files':1,
-                            'ascii':False}}))
+        options={"py2exe":  {
+                            'bundle_files'  :   3,
+                            'ascii'         :   0,
+                            }
+                },
+        #zipfile = None
+        )
+    )
+    
 except ImportError:
     pass
 
