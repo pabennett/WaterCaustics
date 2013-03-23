@@ -115,10 +115,10 @@ def Pointfield2D(dimension=64, scale=1.0):
     '''
     N = dimension
     
-    vertexSize = ctypes.sizeof(GLfloat) * 5              
+    vertexSize = ctypes.sizeof(GLfloat) * 8              
     #vertices = np3DArray(0.0, 5, N, N, GLfloat)
     
-    vertices = (GLfloat * (N * N * 5))(*range(N * N * 5)) 
+    vertices = (GLfloat * (N * N * 8))(*range(N * N * 8)) 
     
     
     #indices = np2DArray(0, N, N, GLshort)
@@ -126,7 +126,7 @@ def Pointfield2D(dimension=64, scale=1.0):
     # Populate the initial positions
     for i in range(N):
         for j in range(N):
-            idx = (i * N + j) * 5  
+            idx = (i * N + j) * 8  
             # # Index
             # indices[i][j] = i * N + j
             # Position X
@@ -135,6 +135,12 @@ def Pointfield2D(dimension=64, scale=1.0):
             vertices[idx + 1] = ((i-N/2.0) * scale) / (N / 2.)
             # Position Z
             vertices[idx + 2] = -1.0
+            # Normal X
+            vertices[idx] = 0.0
+            # Normal Y                        
+            vertices[idx + 1] = 1.0
+            # Normal Z
+            vertices[idx + 2] = 0.0
             # # Texture X
             vertices[idx + 3] = i/float(N)
             # # Texture Y                        
