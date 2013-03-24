@@ -55,9 +55,9 @@ void main(){
     
     // Get the light direction vector    
     vec3 vLightDirection = vLightPosition - position;
-    vLightDirection = vec3(0.0,1.0,0.0);
-    
     vLightDirection = normalize(vLightDirection);
+    
+    
     vec3 normal = normalize(vNormal);
     
     vec3 vRefract = refract(vLightDirection, normal, kAir2Water);
@@ -70,31 +70,20 @@ void main(){
     float distance = (depth2 - position.y) / vRefract.y;
     
     // Calculate the interception point of the ray on the ocean floor.
-    float vs = viewportSize * 0.9;
-    vec3 vIntercept = ((position + vRefract * distance)+(vs/2.0))/vs;
+    vec3 vIntercept = ((position + vRefract * distance)+(viewportSize/2.0))/viewportSize;
     
-    vIntercept.y = photonIntensity/256.0; // Intensity contribution
-    //vIntercept.y = 0.2;
-      
+    // Make the caustic texture tileable by using wrap-around co-ordinates
     vIntercept.x = mod(vIntercept.x, 1.0);
-    vIntercept.z = mod(vIntercept.z, 1.0);
-           
+    vIntercept.z = mod(vIntercept.z, 1.0);     
     if (vIntercept.x < 0.0) {
         vIntercept.x = 1.0 - (abs(vIntercept.x));
-        //vIntercept.y = 1.0;
     }
-    
     if (vIntercept.z < 0.0) {
         vIntercept.z = 1.0 - (abs(vIntercept.z));
-        //vIntercept.y = 1.0;
     }
-         
-    //if(vIntercept.x < -1.0/viewportSize || vIntercept.z < -1.0/viewportSize || vIntercept.x > 1.0+(1.0/viewportSize) || vIntercept.z > 1.0+(1.0/viewportSize))
-    //{
-    //    vIntercept.y = 0.0;
-    //}
-    
-    intensity = vIntercept.y;
+      
+    // Pass values to fragment shader
+    intensity = photonIntensity/256.0; // Intensity contribution
     gl_Position.x = (vIntercept.x*2.0)-1.0;
     gl_Position.y = (vIntercept.z*2.0)-1.0;
     gl_Position.z = 0.0;
