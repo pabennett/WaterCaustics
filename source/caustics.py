@@ -128,7 +128,7 @@ class Caustics():
                      GL_STATIC_DRAW)
         
         # Bind FBO A/B to set Texture A/B as the output texture
-        #glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.pointMapFBO)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.pointMapFBO)
             
         # Set the viewport to the size of the texture 
         # (we are going to render to texture)
