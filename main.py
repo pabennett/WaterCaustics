@@ -10,6 +10,7 @@ __maintainer__ = "Peter Bennett"
 __email__ = "pab850@gmail.com"
 __contact__ = "www.bytebash.com"
 
+import sys, getopt
 # Pyglet provides the OpenGL context and control input
 from pyglet import *
 from pyglet.gl import *
@@ -21,7 +22,6 @@ from pyglet.window import key
 from gletools import ShaderProgram
 from math import *
 # Renderers:
-
 from source import scene,camera,console
 
 # Global constants
@@ -32,6 +32,7 @@ kMouseFocus = True          # Window holds mouse focus
 kDesiredFPS = 120           # Desired FPS (not guaranteed)
 kFixedTimeStep = False      # Render using a fixed time step?
 kTimeStep = 0.1             # Time step to use for fixed time step rendering.
+kFrameGrabPath = 'F:/temp'  # Where to save caustic frame grabs
                             
 # Derived constants
 kFPS = 1/float(kDesiredFPS) ## Loop period ms
@@ -74,25 +75,41 @@ def statusUpdates(dt):
 # Main Render Loop
 def on_draw(dt):
     window.clear()
+    
     if kFixedTimeStep:
         renderer.draw(kTimeStep)
     else:
         renderer.draw(dt)
     # Show Console Data
     status.draw()
-
-# Initialisation
-if __name__ == '__main__':
+        
+# Frame grabber loop for saving caustic animations
+def frameGrabberLoop():
+    # Keep grabbing frames until the frameGrabber has captured a full period
+    while True:
+        try:
+            res = renderer.frameGrab(kTimeStep, directory=kFrameGrabPath)
+            if res:
+                break
+        except IOError:
+            print("The supplied path for saving frames was not valid or is \
+                   unavailable")
+            break
+def main():
     glClearColor(0.0, 0.49, 1.0 ,1.0)
     glViewport(0, 0, kScreenWidth, kScreenHeight)
     glEnable(GL_DEPTH_TEST)
-    
     glEnable(GL_PROGRAM_POINT_SIZE)
-    #glEnable(GL_POINT_SMOOTH)
-    #glPointSize( 1) 
-    
-clock.schedule_interval(on_draw, kFPS)
-clock.schedule_interval(statusUpdates, 0.2)
-pyglet.app.run()
+    clock.schedule_interval(on_draw, kFPS)
+    clock.schedule_interval(statusUpdates, 0.2)
+    pyglet.app.run()
+
+if len(sys.argv) > 1:
+    if sys.argv[1] == '--grab':
+        frameGrabberLoop()
+    else:
+        main()
+else:
+    main()
 
 

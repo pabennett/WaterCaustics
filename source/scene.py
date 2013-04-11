@@ -62,6 +62,7 @@ class Scene():
         self.causticIntensity = 2.0
         self.causticPhotonScale = 1.0
         self.period = 20
+        self.frame = 0
         
         # Renderables
         self.scene = []
@@ -132,7 +133,29 @@ class Scene():
             drawable.draw(dt)
 
         glPolygonMode(GL_FRONT, GL_FILL)
-
+        
+    def frameGrab(self, dt, directory=""):
+        '''
+        Save successive caustic frames to an image sequence so that it may be
+        used as an animated texture or video in another program
+        '''
+        self.time += dt
+        # Update the ocean surface so caustics can be generated
+        self.ocean.surface.update(dt)
+        # Update caustics
+        self.ocean.caustics.update(dt)
+        # Save the caustic texture to output image until a full period of the
+        # ocean surface has been processed
+        if self.time < self.period:
+            self.ocean.causticTexture.save(directory + '/frame_' + 
+                ('%03d' % self.frame) + '.png')
+            self.frame += 1
+        else:
+            print("Frame grabbing is complete, " + str(self.frame)
+                  + " frames were generated in " + directory)
+            return True
+        return False
+    
     def cameraUpdate(self, dt):
         self.camera.update(dt)
         
