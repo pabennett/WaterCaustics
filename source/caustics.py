@@ -57,7 +57,7 @@ class Caustics():
                                 ) 
         self.sizeHandle = glGetUniformLocation(
                                     self.shader.id,
-                                    "viewportSize"
+                                    "tileSize"
                                 )
         self.photonIntensityHandle = glGetUniformLocation(
                                     self.shader.id,
