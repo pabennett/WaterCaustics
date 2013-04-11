@@ -100,7 +100,6 @@ class Tessendorf():
         return floor(sqrt(self.g * sqrt(kx**2 + kz**2)) / self.w0) * self.w0
            
     def getHTilde0(self, nPrime, mPrime):
-        import random
         r = gaussianRandomVariable()
         return r * sqrt(self.phillips(nPrime, mPrime) / 2.0)
         
