@@ -10,7 +10,7 @@ __maintainer__ = "Peter Bennett"
 __email__ = "pab850@gmail.com"
 __contact__ = "www.bytebash.com"
 
-import sys, getopt
+import sys, ConfigParser
 # Pyglet provides the OpenGL context and control input
 from pyglet import *
 from pyglet.gl import *
@@ -24,21 +24,28 @@ from math import *
 # Renderers:
 from source import scene,camera,console
 
+# Settings
+options = ConfigParser.RawConfigParser()
+options.read('options.ini')
+
 # Global constants
-kScreenWidth = 864          # Window width
-kScreenHeight= 864          # Window height
-kFullScreenMode = False     # Fulscreen mode
-kMouseFocus = True          # Window holds mouse focus
-kDesiredFPS = 120           # Desired FPS (not guaranteed)
-kFixedTimeStep = False      # Render using a fixed time step?
-kTimeStep = 0.1             # Time step to use for fixed time step rendering.
-kFrameGrabPath = 'F:/temp'  # Where to save caustic frame grabs
-                            
+kScreenWidth = options.getint('Options', 'screenwidth')
+kScreenHeight = options.getint('Options', 'screenheight')
+kFullScreenMode = options.getboolean('Options', 'fullscreen')
+kMouseFocus = options.getboolean('Options', 'mousefocus')        
+maxFPS = options.getint('Options', 'maxfps')
+kFixedTimeStep = options.getboolean('Options', 'fixedtimestep')   
+kTimeStep = options.getfloat('Options', 'timestep')           
+kFrameGrabPath = options.get('Options', 'framegrabpath')   
+kBuffers = options.getint('Options', 'buffers')
+kSamples = options.getint('Options', 'samples') 
+kVFOV = options.getfloat('Options', 'vfov')
+            
 # Derived constants
-kFPS = 1/float(kDesiredFPS) ## Loop period ms
+kFPS = 1/float(maxFPS) ## Loop period ms
 
 # Setup        
-config = Config(buffers=2, samples=4)
+config = Config(buffers=kBuffers, samples=kSamples)
 window = pyglet.window.Window(caption='Caustics', 
                               width=kScreenWidth, 
                               height=kScreenHeight, 
@@ -57,9 +64,9 @@ status.addParameter('FPS')
 status.addParameter('Position')
 status.addParameter('Velocity')               
                                            
-camera = camera.Camera(kScreenWidth, kScreenHeight, 65.0, 0.1, 1000.)
+camera = camera.Camera(kScreenWidth, kScreenHeight, kVFOV, 0.1, 1000.)
 
-renderer = scene.Scene(window, camera, status)
+renderer = scene.Scene(window, camera, status, options)
 
 def statusUpdates(dt):
     position = tuple(int(a) for a in camera.position.values())
@@ -86,14 +93,15 @@ def on_draw(dt):
 # Frame grabber loop for saving caustic animations
 def frameGrabberLoop():
     # Keep grabbing frames until the frameGrabber has captured a full period
+    print("Starting frame grabber, output files will be stored in " + 
+          kFrameGrabPath)
     while True:
         try:
             res = renderer.frameGrab(kTimeStep, directory=kFrameGrabPath)
             if res:
                 break
         except IOError:
-            print("The supplied path for saving frames was not valid or is \
-                   unavailable")
+            print("The supplied path for saving frames was not valid or is unavailable")
             break
 def main():
     glClearColor(0.0, 0.49, 1.0 ,1.0)

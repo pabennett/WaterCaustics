@@ -23,8 +23,10 @@ from vector import Vector2, Vector3
 from water import Ocean, Pool
        
 class Scene():
-    def __init__(self, window, camera, statusConsole):
-        """ Constructor """
+    def __init__(self, window, camera, statusConsole, options):
+        ''' Constructor '''
+        # Options
+        self.options = options
         # Register the renderer for control input
         self.keys = key.KeyStateHandler()
         self.pressedKeys = {}
@@ -48,22 +50,27 @@ class Scene():
         self.status.addParameter('Caustics scale')
         
         self.time = 0.0
+        
         # Ocean Render Parameters
         self.wireframe = False
-        self.oceanDepth = 60.0
+        self.oceanDepth = self.options.getfloat('Scene', 'oceandepth')
         self.enableUpdates = True
-        self.oceanWind = Vector2(128.0,128.0)
-        self.oceanWaveHeight = 1.953125e-06
-        self.oceanTileSize = 128               # Must be a power of 2 
-        self.oceanTiles = Vector2(10,10)
+        self.oceanWind = Vector2(
+                            self.options.getfloat('Scene', 'oceanwindx'),
+                            self.options.getfloat('Scene', 'oceanwindy'))
+        self.oceanWaveHeight = self.options.getfloat('Scene', 'oceanwaveheight')
+        self.oceanTileSize = self.options.getint('Scene', 'oceantilesize')
+        self.oceanTiles = Vector2(
+                            self.options.getint('Scene', 'oceantilesx'),
+                            self.options.getint('Scene', 'oceantilesy'))
         self.drawSurface = True
         self.drawFloor = True
         self.enableCaustics = True
-        self.causticIntensity = 2.0
-        self.causticPhotonScale = 1.0
-        self.period = 20
+        self.causticIntensity= self.options.getfloat('Scene','causticintensity')
+        self.causticPhotonScale = self.options.getfloat('Scene', 'causticscale')
+        self.period = self.options.getfloat('Scene', 'period')
         self.frame = 0
-        
+
         # Renderables
         self.scene = []
         self.ocean = Ocean( self.camera,
@@ -148,6 +155,8 @@ class Scene():
         # ocean surface has been processed
         if self.time < self.period:
             self.ocean.causticTexture.save(directory + '/frame_' + 
+                ('%03d' % self.frame) + '.png')
+            print("Saved " + directory + '/frame_' + 
                 ('%03d' % self.frame) + '.png')
             self.frame += 1
         else:
