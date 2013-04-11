@@ -60,7 +60,8 @@ class Scene():
         self.drawFloor = True
         self.enableCaustics = True
         self.causticIntensity = 2.0
-        self.causticPhotonScale = 4.0
+        self.causticPhotonScale = 1.0
+        self.period = 20
         
         # Renderables
         self.scene = []
@@ -72,11 +73,11 @@ class Scene():
                             tilesX=self.oceanTiles.x,
                             tilesZ=self.oceanTiles.y,
                             photonScale=self.causticPhotonScale,
-                            photonIntensity=self.causticIntensity)
+                            photonIntensity=self.causticIntensity,
+                            period=self.period)
                                                         
         self.scene.append(self.ocean)
 
-                            
     def statusUpdates(self, dt):
         '''
         Called periodically by main loop for onscreen text updates
@@ -113,7 +114,6 @@ class Scene():
                 self.causticIntensity -= 0.1
                 self.ocean.setCausticPhotonIntensity(self.causticIntensity)
     
-    
         # Update camera orientation and position
         self.cameraUpdate(dt)
         
@@ -132,6 +132,7 @@ class Scene():
             drawable.draw(dt)
 
         glPolygonMode(GL_FRONT, GL_FILL)
+
     def cameraUpdate(self, dt):
         self.camera.update(dt)
         
@@ -186,8 +187,6 @@ class Scene():
         if symbol == key.M:
             self.enableCaustics = not self.enableCaustics
             self.ocean.enableCaustics = self.enableCaustics
-
-            
             
     def isKeyPressed(self, symbol):
         if symbol in self.pressedKeys:
