@@ -12,3 +12,4 @@ media
 *.profile
 wavetest.py
 nonvcs_sides
+shaders/unused
