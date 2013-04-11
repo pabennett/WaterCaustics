@@ -50,7 +50,7 @@ class Scene():
         self.time = 0.0
         # Ocean Render Parameters
         self.wireframe = False
-        self.oceanDepth = 450.0
+        self.oceanDepth = 60.0
         self.enableUpdates = True
         self.oceanWind = Vector2(128.0,128.0)
         self.oceanWaveHeight = 1.953125e-06
