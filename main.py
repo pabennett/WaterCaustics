@@ -30,6 +30,8 @@ kScreenHeight= 864          # Window height
 kFullScreenMode = False     # Fulscreen mode
 kMouseFocus = True          # Window holds mouse focus
 kDesiredFPS = 120           # Desired FPS (not guaranteed)
+kFixedTimeStep = False      # Render using a fixed time step?
+kTimeStep = 0.1             # Time step to use for fixed time step rendering.
                             
 # Derived constants
 kFPS = 1/float(kDesiredFPS) ## Loop period ms
@@ -72,8 +74,10 @@ def statusUpdates(dt):
 # Main Render Loop
 def on_draw(dt):
     window.clear()
-    renderer.draw(dt)
-
+    if kFixedTimeStep:
+        renderer.draw(kTimeStep)
+    else:
+        renderer.draw(dt)
     # Show Console Data
     status.draw()
 
