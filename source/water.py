@@ -41,6 +41,7 @@ class Ocean():
         
         self.surfaceShader = ShaderProgram.open('shaders/ocean.shader')
         self.groundShader = ShaderProgram.open('shaders/ocean_caustics.shader')
+        
         self.oceanFloorTexture = image.load('images/sand.png').get_texture() 
         
         
@@ -90,6 +91,12 @@ class Ocean():
                                 scale=self.scale * self.tileSize, 
                                 offset=Vector3(0.0,0.0,0.0))
                                 
+    def reloadShaders(self):
+        self.surfaceShader = ShaderProgram.open('shaders/ocean.shader')
+        self.groundShader = ShaderProgram.open('shaders/ocean_caustics.shader')
+        self.surface.setShader(self.surfaceShader)
+        self.ground.setShader(self.groundShader)
+        
     def setCausticPhotonIntensity(self, intensity):
         self.photonIntensity = intensity
         self.caustics.photonIntensity = self.photonIntensity

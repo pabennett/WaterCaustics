@@ -219,6 +219,8 @@ class Scene():
         if symbol == key.M:
             self.enableCaustics = not self.enableCaustics
             self.ocean.enableCaustics = self.enableCaustics
+        if symbol == key.P:
+            self.ocean.reloadShaders()
             
     def isKeyPressed(self, symbol):
         if symbol in self.pressedKeys:
