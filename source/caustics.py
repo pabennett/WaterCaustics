@@ -141,7 +141,7 @@ class Caustics():
         # Bind the photon shader
         glUseProgram(self.shader.id)
 
-        glUniform3f(self.lightPositionHandle, *self.lightPosition.elements())
+        glUniform3f(self.lightPositionHandle, *self.lightPosition.cvalues())
         glUniform1f(self.depthHandle, self.depth)
         glUniform1f(self.sizeHandle, self.tileSize)    
         glUniform1f(self.photonIntensityHandle, self.photonIntensity)

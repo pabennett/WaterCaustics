@@ -45,7 +45,7 @@ class Vector3():
         """ Return a copy of this vector as a unit vector. """
         mag = self.magnitude()
         return Vector3(self.x / mag,self.y / mag,self.z / mag)
-    def elements(self):
+    def cvalues(self):
         return (c_float*3)(*[self.x, self.y, self.z])
     def values(self):
         return [self.x, self.y, self.z]
@@ -78,7 +78,7 @@ class Vector2():
         """ Return a copy of this vector as a unit vector. """
         mag = self.magnitude()
         return Vector3(self.x / mag,self.y / mag)
-    def elements(self):
+    def cvalues(self):
         return (c_float*2)(*[self.x, self.y])
     def values(self):
         return [self.x, self.y]

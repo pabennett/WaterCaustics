@@ -298,25 +298,29 @@ class Camera():
                                                     self.height,
                                                     self.FOV, 
                                                     self.fzNear,
-                                                    self.fzFar).elements
+                                                    self.fzFar).cvalues()
     def getModelView(self):
         """ 
         Get the model-viw matrix.
         The model-view matrix 4x4 matrix is used to transform from world/object
         space to eye/camera space.
         """
-        return self.view.elements
+        return self.view.cvalues()
     def getMVP(self):
         """
         Get the model-view-projection (MVP) matrix.
         The MVP matrix is used to transform from world/object space to clip space.
         """
-        return self.MVP.elements
+        return self.MVP.cvalues()
     def getProjection(self):
         """
         Get the projection matrix.
         The projection matrix is used to translate from camera/eye space to clip space.
         """
-        return self.projection.elements
+        return self.projection.cvalues()
+    def getEye(self):
+        return self.forward.cvalues()
+    def getPosition(self):
+        return self.position.cvalues()
         
         

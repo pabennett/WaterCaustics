@@ -3,7 +3,7 @@ from pyglet.gl import *
 from vector import Vector2, Vector3
 from matrix16 import Matrix16
 from utilities import *
-from ctypes import pointer, sizeof
+from ctypes import pointer, sizeof, c_float
 
 class Surface():
     '''
@@ -29,21 +29,12 @@ class Surface():
         self.tileSize = tileSize        # N - should be power of 2
         self.offset = offset            # World space offset
         self.scale = scale              # Size of each quad in world space
-        self.shader = shaderProgram     # The GLSL shader program handle
         self.camera = camera            # A camera object (provides MVP)
-        self.tilesX = tilesX
-        self.tilesZ = tilesZ
+        self.tileCount = Vector2(tilesX,tilesZ)
         self.texture = texture
         self.causticTexture = causticTexture
-        # Set up GLSL uniform and attribute handles
-        self.positionHandle = glGetAttribLocation(self.shader.id, "vPosition")
-        self.tileSizeormalHandle = glGetAttribLocation(self.shader.id, "vNormal")
-        self.texCoordHandle = glGetAttribLocation(self.shader.id, "vTexCoord")
-        self.modelMatrixHandle = glGetUniformLocation(self.shader.id, "model")
-        self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
-        self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
-        self.textureHandle = glGetUniformLocation(self.shader.id, "texture")
-        self.causticTextureHandle = glGetUniformLocation(self.shader.id, "caustics")      
+        # Set the shader and obtain references to shader uniforms/attributes
+        self.setShader(shaderProgram)
         # Generate a 2D plane composed of tiled Quads
         # Directly access the positions, normals and indices of the mesh
         self.verts, self.indices = Mesh2DSurface(self.tileSize, self.scale)
@@ -126,7 +117,23 @@ class Surface():
         # Ocean Heightfield Generator
         self.time = 0.0
         self.heightfield = heightfield
-
+    def setShader(self, shader):
+        self.shader = shader     # The GLSL shader program handle
+        # Set up GLSL uniform and attribute handles
+        self.positionHandle = glGetAttribLocation(self.shader.id, "vPosition")
+        self.tileSizeormalHandle = glGetAttribLocation(self.shader.id, "vNormal")
+        self.texCoordHandle = glGetAttribLocation(self.shader.id, "vTexCoord")
+        self.modelMatrixHandle = glGetUniformLocation(self.shader.id, "model")
+        self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
+        self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
+        self.textureHandle = glGetUniformLocation(self.shader.id, "texture")
+        self.causticTextureHandle = glGetUniformLocation(self.shader.id, "caustics")      
+        self.eyeHandle = glGetUniformLocation(self.shader.id, "eye")  
+        self.eyePositionHandle = glGetUniformLocation(self.shader.id, "eyePosition")  
+        
+        self.tileSizeHandle = glGetUniformLocation(self.shader.id, "tileSize") 
+        self.tileCountHandle = glGetUniformLocation(self.shader.id, "tileCount")
+        self.tileOffsetHandle = glGetUniformLocation(self.shader.id, "tileOffset")
     def setHeightfield(self, heightfield):
         self.heightfield = heightfield
         
@@ -155,8 +162,7 @@ class Surface():
                          GL_STATIC_DRAW)
                          
     def size(self, tilesX, tilesZ):
-        self.tilesX = tilesX
-        self.tilesZ = tilesZ
+        self.tileCount = Vector2(tilesX,tilesZ)
     
     def draw(self, dt):
         '''
@@ -176,6 +182,12 @@ class Surface():
                             1,
                             False,
                             self.camera.getModelView())
+                            
+        glUniform3fv(self.eyeHandle, 3, self.camera.getEye())
+        glUniform3fv(self.eyePositionHandle, 3, self.camera.getPosition())
+         
+        glUniform1f(self.tileSizeHandle, self.tileSize)
+        glUniform2fv(self.tileCountHandle, 2, self.tileCount.cvalues())
          
         if self.texture:
             glActiveTexture(GL_TEXTURE0)
@@ -192,14 +204,15 @@ class Surface():
         # Translate Y 
         self.modelMatrix[13] = self.offset.y        
                     
-        for i in range(self.tilesX):
+        for i in range(self.tileCount.x):
             # Translate X
             self.modelMatrix[12] =  self.offset.x + \
                                     self.tileSize * self.scale * i
-            for j in range(self.tilesZ):
+            for j in range(self.tileCount.y):
                 # Translate Z
                 self.modelMatrix[14] =  self.offset.z + \
                                         self.tileSize * self.scale * j 
+                glUniform2fv(self.tileOffsetHandle, 2, (c_float*2)(*[i, j]))        
                 glUniformMatrix4fv( self.modelMatrixHandle,
                                     1,
                                     False,

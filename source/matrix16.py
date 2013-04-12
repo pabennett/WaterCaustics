@@ -78,6 +78,8 @@ class Matrix16():
                 self.elements[(i*4)+1],  \
                 self.elements[(i*4)+2],  \
                 self.elements[(i*4)+3]])
+    def cvalues(self):
+        return self.elements
                 
     @classmethod
     def perspective(self, vFOV, aspect, fzNear, fzFar):
