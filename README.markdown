@@ -1,14 +1,29 @@
 WaterCaustics - Rendering Experiments
 ==============================
 
-![WaterCaustics](http://www.bytebash.com/files/caustics.png "Water Caustics")
-
 Description
 -----------
 
 The aim of this project is to emulate the light patterns known as water caustics
 typically seen on on the bottom of a swimming pool. I investigate various
 methods of simulating water surfaces and associated caustics.
+
+The engine is able to render various scenes at interractive framerates:
+
+Swimming pool
+-------------
+
+![PoolCaustics](http://www.bytebash.com/files/caustics/swimmingPoolPreview.png "Pool Caustics")
+
+Sea
+-------------
+
+![Sea](http://www.bytebash.com/files/caustics/seaPreview.png "Sea")
+
+Tropical Water
+--------------
+
+![Tropical](http://www.bytebash.com/files/caustics/tropicalPreview.png "Tropical Caustics")
 
 Dependencies
 ------------
