@@ -61,6 +61,18 @@ How to Run
 
 Install the required dependencies and then run **main.py**!
 
+Create caustic textures
+-----------------------
+
+This software can be used to create looping, tileable animated caustic textures
+for use in other programs by calling the script with the *--grab* switch:
+```
+$ python main.py --grab
+```
+Caustic frames like the one below will be saved to the location specified by the *framegrabpath* in the *options.ini* file.
+
+![CausticTile](http://bytebash.com/files/caustic.png "Caustic Tile")
+
 Controls
 --------
 
