@@ -110,16 +110,16 @@ def frameGrabberLoop():
             print("The supplied path for saving frames was not valid or is unavailable")
             break
 def main():
-    glClearColor(0.0, 0.49, 1.0 ,1.0)
-    glViewport(0, 0, kScreenWidth, kScreenHeight)
-    glEnable(GL_DEPTH_TEST)
-    glEnable(GL_PROGRAM_POINT_SIZE)
     clock.schedule_interval(on_draw, kFPS)
     clock.schedule_interval(statusUpdates, 0.2)
     pyglet.app.run()
 
 # Call this script with the "--grab" switch to create a looping animated set
 # of caustic images for use in another program.
+glClearColor(0.0, 0.49, 1.0 ,1.0)
+glViewport(0, 0, kScreenWidth, kScreenHeight)
+glEnable(GL_DEPTH_TEST)
+glEnable(GL_PROGRAM_POINT_SIZE)
 if len(sys.argv) > 1:
     if sys.argv[1] == '--grab':
         frameGrabberLoop()
