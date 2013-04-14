@@ -15,6 +15,8 @@ Swimming pool
 
 ![PoolCaustics](http://www.bytebash.com/files/caustics/swimmingPoolPreview.png "Pool Caustics")
 
+You can check out a video of this scene over at Youtube: http://www.youtube.com/watch?v=JBT9THaPt4A&hd=1
+
 Sea
 -------------
 
