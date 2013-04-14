@@ -121,7 +121,7 @@ void main()
     
     if ((vIntercept.x < vTileCount.x) && (vIntercept.x > 0) &&
         (vIntercept.z < vTileCount.y) && (vIntercept.z > 0)) {
-        emissive_colour = texture2D(texture, vIntercept.xz) + texture2D(caustics, vIntercept.xz);
+        emissive_colour = texture2D(texture, vIntercept.zx) + texture2D(caustics, vIntercept.zx);
     }
     
     // Apply ambient, emissive, diffuse and specular terms to the surface
