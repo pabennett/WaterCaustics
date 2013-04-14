@@ -22,7 +22,7 @@ void main(){
     position = vPosition;
     normal = vNormal;
     gl_Position = view * model * vec4(vPosition,1.0);
-    fogFactor = min(-gl_Position.z/300.0, 1.0);
+    fogFactor = min(-gl_Position.z/500.0, 1.0);
     gl_Position = projection * gl_Position;
 
     texCoord = vTexCoord;
@@ -30,7 +30,8 @@ void main(){
 
 fragment:
 
-const float e = 2.71828182845904523536028747135266249;
+import: colourmaps
+
 const vec4 waterColour = vec4(0.0, 0.49, 1.0, 1.0);
 
 varying vec2 texCoord;
@@ -40,24 +41,20 @@ uniform sampler2D texture;
 uniform sampler2D caustics; 
 
 uniform float depth; 
-  
-vec4 fog(vec4 color, vec4 fcolor, float depth, float density)
-{
-   float f=pow(e, -pow(depth*density, 2));
-   return mix(fcolor, color, f);
-}
 
 void main()
 {
     vec4 fragColour;
     
+    // Sample the ocean floor texture
     fragColour = texture2D(texture, texCoord);
+    // Apply distance fog
 	fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
-
+    // Sample the caustic texture
     vec4 caustic = vec4(texture2D(caustics, texCoord)) * (1.0-fogFactor);
-    
+    // Apply the caustic texture
     fragColour += caustic;
     fragColour.a = 1.0;
-
+    // Output the colour
     gl_FragColor = fragColour;
 }

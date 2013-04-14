@@ -40,6 +40,7 @@ kFrameGrabPath = options.get('Options', 'framegrabpath')
 kBuffers = options.getint('Options', 'buffers')
 kSamples = options.getint('Options', 'samples') 
 kVFOV = options.getfloat('Options', 'vfov')
+kShowInfo = options.getboolean('Options', 'info') 
             
 # Derived constants
 kFPS = 1/float(maxFPS) ## Loop period ms
@@ -66,6 +67,10 @@ status.addParameter('Velocity')
                                            
 camera = camera.Camera(kScreenWidth, kScreenHeight, kVFOV, 0.1, 1000.)
 
+# Offset and orient the camera so that it is looking at the water.
+camera.setpos(0.0, 140.0, 50.0)
+camera.orient(225.0,-55.0,0.0)
+
 renderer = scene.Scene(window, camera, status, options)
 
 def statusUpdates(dt):
@@ -87,8 +92,9 @@ def on_draw(dt):
         renderer.draw(kTimeStep)
     else:
         renderer.draw(dt)
-    # Show Console Data
-    status.draw()
+    if kShowInfo:
+        # Show Console Data
+        status.draw()
         
 # Frame grabber loop for saving caustic animations
 def frameGrabberLoop():
@@ -112,6 +118,8 @@ def main():
     clock.schedule_interval(statusUpdates, 0.2)
     pyglet.app.run()
 
+# Call this script with the "--grab" switch to create a looping animated set
+# of caustic images for use in another program.
 if len(sys.argv) > 1:
     if sys.argv[1] == '--grab':
         frameGrabberLoop()

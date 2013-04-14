@@ -21,8 +21,10 @@ varying vec3 halfAngleVector;
 varying float fogFactor;
 varying vec3 position;
 varying float vTileSize;
+varying vec2 vTileCount;
+varying vec2 vTileOffset;
 
-const vec3 lightPosition = vec3(1000.0, 600.0, 1000.0);
+const vec3 lightPosition = vec3(1000.0, 600.0, 300.0);
 
 void main(){
 
@@ -31,10 +33,13 @@ void main(){
     //Same as row-major operator on right (v1 * M*V*P = v2)
     gl_Position = view * model * vec4(vPosition,1.0);
     
-    position.x = vPosition.x + (tileOffset.x * tileSize);
-    position.z = vPosition.z + (tileOffset.y * tileSize);
-    position.y = model[3][1];
+    position.x = vPosition.x + (tileOffset.x * tileSize) + (tileSize/2.0);
+    position.z = vPosition.z + (tileOffset.y * tileSize) + (tileSize/2.0);
+    position.y = vPosition.y + model[3][1]; // Get the vertical offset (depth)
+
     vTileSize = tileSize;
+    vTileCount = tileCount;
+    vTileOffset = tileOffset;
     
     fogFactor = min(-gl_Position.z/500.0, 1.0);
     gl_Position = projection * gl_Position;
@@ -52,7 +57,7 @@ void main(){
 
 fragment:
 
-const float e = 2.71828182845904523536028747135266249;
+import: colourmaps
 
 varying vec2 texCoord;
 
@@ -63,6 +68,8 @@ varying vec3 halfAngleVector;
 varying float fogFactor;
 varying vec3 position;
 varying float vTileSize;
+varying vec2 vTileCount;
+varying vec2 vTileOffset;
 
 uniform sampler2D texture; 
 uniform sampler2D caustics; 
@@ -94,53 +101,55 @@ void main()
         the eye through the water's surface to the sea floor
     */
     
-    // Get the direction of the eye       
-    vec3 vEyeDirection = normalize(eyePosition-position);
+    // Get the direction to the eye from the vertex position   
+    vec3 vEyeDirection = normalize(position-eyePosition);
+    // Distance from the eye to surface point
+    float eyeDistance = distance(eyePosition,position);
+    // Refracted eye ray through ocean surface
     vec3 vRefract = refract(vEyeDirection, surfaceNormal, kAir2Water);
     // Calculate the distance along the Refraction ray from the ocean surface
     // to the interception point on the ocean floor.
     float depth = position.y;
-    float distance = depth / vRefract.y;
-    
+    float distance = abs(depth / vRefract.y);
+
     // Calculate the interception point of the ray on the ocean floor.
-    vec3 vIntercept = ((mod(position,vTileSize) + vRefract * distance)/vTileSize);
-        
-    // Wrap-around co-ordinates
-    vIntercept.x = mod(vIntercept.x, 1.0);
-    vIntercept.z = mod(vIntercept.z, 1.0);     
-    if (vIntercept.x < 0.0) {
-        vIntercept.x = 1.0 - (abs(vIntercept.x));
-    }
-    if (vIntercept.z < 0.0) {
-        vIntercept.z = 1.0 - (abs(vIntercept.z));
+    vec3 vIntercept = ((position + vRefract * distance)/vTileSize);
+
+    // If the ray strikes the ocean floor sample the floor texture, otherwise
+    // return the 'out of bounds' color - in this case the glclearcolour
+    vec4 emissive_colour = vec4(0.0, 0.49, 1.0 ,1.0); 
+    
+    if ((vIntercept.x < vTileCount.x) && (vIntercept.x > 0) &&
+        (vIntercept.z < vTileCount.y) && (vIntercept.z > 0)) {
+        emissive_colour = texture2D(texture, vIntercept.xz) + texture2D(caustics, vIntercept.xz);
     }
     
-    vec4 c = texture2D(texture, vIntercept.xz) + texture2D(caustics, vIntercept.xz);
-    
-    /* Apply ambient, emissive, diffuse and specular terms to the surface */
+    // Apply ambient, emissive, diffuse and specular terms to the surface
+    vec4 c = vec4(1.0);
+    vec4 ambient_colour  = vec4(0.0, 0.53, 1.0 , 1.0);
+    vec4 specular_colour = vec4(1.0, 1.0, 1.0,  1.0);
+    vec4 diffuse_colour = vec4(120.0/255.0, 226.0/255.0, 252.0/255.0, 1.0);//vec4(0.11, 0.24, 0.59, 1.0);
 
-    vec4 emissive_color = vec4(1.0, 1.0, 1.0,  1.0);
-    vec4 ambient_color  = vec4(0.0, 0.53, 1.0 , 1.0);
-    vec4 diffuse_color  = vec4(1.0, 1.0, 1.0,  1.0);
-    vec4 specular_color = vec4(1.0, 1.0, 1.0,  1.0);
-
-    float emissive_contribution = 0.20;
-    float ambient_contribution  = 0.20;
-    float diffuse_contribution  = 0.80;
-    float specular_contribution = 1.20;
-
+    // The emissive contribution is reduced as the water gets deeper, this
+    // makes the water appear darker and the sea floor obscured by scattering.
+    // Rework this at some point.
+    float emissive_contribution = min(pow(e, -pow((distance)/200, 2)), 0.6);
+    float ambient_contribution  = 0.2;
+    float diffuse_contribution  = 0.3;
+    float specular_contribution = 1.00;
 	float d = dot(normal1, lightVector1);
+    
 	bool facing = d > 0.0;
-
-	fragColour = emissive_color * emissive_contribution +
-		    ambient_color  * ambient_contribution  * c +
-		    diffuse_color  * diffuse_contribution  * c * max(d, 0) +
+	fragColour = emissive_colour * emissive_contribution +
+		    ambient_colour  * ambient_contribution  * c +
+		    diffuse_colour  * diffuse_contribution  * c * max(d, 0) +
                     (facing ?
-			specular_color * specular_contribution * c * max(pow(dot(normal1, halfAngleVector1), 120.0), 0.0) :
+			specular_colour * specular_contribution * c * max(pow(dot(normal1, halfAngleVector1), 120.0), 0.0) :
 			vec4(0.0, 0.0, 0.0, 0.0));
 
+    // Apply distance fogging
 	fragColour = fragColour * (1.0-fogFactor) + vec4(0.0, 0.49, 1.0 ,1.0) * (fogFactor);
-
+    // Output the colour
 	fragColour.a = 1.0;
     gl_FragColor = fragColour;
 }
