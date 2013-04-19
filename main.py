@@ -68,7 +68,7 @@ status.addParameter('Velocity')
 camera = camera.Camera(kScreenWidth, kScreenHeight, kVFOV, 0.1, 1000.)
 
 # Offset and orient the camera so that it is looking at the water.
-camera.setpos(0.0, 140.0, 50.0)
+camera.setpos(100.0, 140.0, 150.0)
 camera.orient(225.0,-55.0,0.0)
 
 renderer = scene.Scene(window, camera, status, options)

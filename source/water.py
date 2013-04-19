@@ -93,7 +93,7 @@ class Ocean():
                                 
     def reloadShaders(self):
         self.surfaceShader = ShaderProgram.open('shaders/ocean.shader')
-        self.groundShader = ShaderProgram.open('shaders/ocean_caustics.shader')
+        self.groundShader = ShaderProgram.open('shaders/oceanfloor.shader')
         self.surface.setShader(self.surfaceShader)
         self.ground.setShader(self.groundShader)
         

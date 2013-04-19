@@ -193,11 +193,11 @@ def Mesh2DSurface(dimension=64, scale=1.0):
     for i in range(N+1):
         for j in range(N+1):
             # Position X
-            verts[i][j][0] = (j-N/2.0) * scale
+            verts[i][j][0] = j * scale
             # Position Y                        
             verts[i][j][1] = 0.0
             # Position Z
-            verts[i][j][2] = (i-N/2.0) * scale
+            verts[i][j][2] = i * scale
             # # Normal X
             verts[i][j][3] = 0.0
             # # Normal Y                        
@@ -207,6 +207,5 @@ def Mesh2DSurface(dimension=64, scale=1.0):
             # # Texture X
             verts[i][j][6] = i/float(N)
             # # Texture Y                        
-            verts[i][j][7] = j/float(N)
-            
+            verts[i][j][7] = j/float(N)  
     return verts, indices
