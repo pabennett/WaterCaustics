@@ -1,0 +1,26 @@
+const vec4 waterColour = vec4(0.0, 0.49, 1.0, 1.0);
+
+varying vec2 texCoord;
+varying float fogFactor;
+
+uniform sampler2D texture; 
+uniform sampler2D caustics; 
+
+uniform float depth; 
+
+void main()
+{
+    vec4 fragColour;
+    
+    // Sample the ocean floor texture
+    fragColour = texture2D(texture, texCoord);
+    // Apply distance fog
+	fragColour = fragColour * (1.0-fogFactor) + waterColour * (fogFactor);
+    // Sample the caustic texture
+    vec4 caustic = vec4(texture2D(caustics, texCoord)) * (1.0-fogFactor);
+    // Apply the caustic texture
+    fragColour += caustic;
+    fragColour.a = 1.0;
+    // Output the colour
+    gl_FragColor = fragColour;
+}

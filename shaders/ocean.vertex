@@ -1,0 +1,46 @@
+
+attribute vec3 vPosition;
+attribute vec3 vNormal;
+attribute vec2 vTexCoord;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+varying vec2 texCoord;
+
+varying vec3 lightVector;
+varying vec3 normal;
+varying vec3 surfaceNormal;
+varying vec3 halfAngleVector;
+varying float fogFactor;
+varying vec3 worldPosition;
+
+varying vec3 lightDirection;
+
+const vec3 lightPosition = vec3(2000.0, 1600.0, 2000.0);
+
+void main(){
+
+    //OpenGL uses column-major operator on left (P*V*M * v1 = v2) convention. 
+    // (MVP * position)
+    //Same as row-major operator on right (v1 * M*V*P = v2)
+    gl_Position = view * model * vec4(vPosition,1.0);
+    
+    worldPosition = (model * vec4(vPosition,1.0)).xyz;
+        
+    fogFactor = min(-gl_Position.z/700.0, 1.0);
+    gl_Position = projection * gl_Position;
+
+	vec4 v = view * model * vec4(vPosition,1.0);
+	vec3 normal1 = normalize(vNormal);
+    
+	lightVector = normalize((view * vec4(lightPosition, 1.0)).xyz - v.xyz);
+    lightDirection = normalize(lightPosition - worldPosition);
+	normal = normalize((inverse(transpose(view * model)) * vec4(normal1, 0.0)).xyz);
+    surfaceNormal = normal1;
+    halfAngleVector = normalize(lightVector + normalize(-v.xyz));
+    
+    texCoord = vTexCoord;
+    
+}

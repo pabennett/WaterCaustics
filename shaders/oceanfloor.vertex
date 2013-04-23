@@ -1,0 +1,27 @@
+attribute vec3 vPosition;
+attribute vec3 vNormal;
+attribute vec2 vTexCoord;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+varying vec2 texCoord;
+
+varying vec3 normal;
+varying vec3 position;
+varying float fogFactor;
+
+void main(){
+
+    //OpenGL uses column-major operator on left (P*V*M * v1 = v2) convention. 
+    // (MVP * position)
+    //Same as row-major operator on right (v1 * M*V*P = v2)
+    position = vPosition;
+    normal = vNormal;
+    gl_Position = view * model * vec4(vPosition,1.0);
+    fogFactor = min(-gl_Position.z/500.0, 1.0);
+    gl_Position = projection * gl_Position;
+
+    texCoord = vTexCoord;
+}

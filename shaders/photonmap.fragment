@@ -1,0 +1,7 @@
+varying float intensity;
+
+void main()
+{
+    // The intensity of the photon is controlled via a uniform
+    gl_FragColor = vec4(vec3(1.0,1.0,1.0),intensity);
+}

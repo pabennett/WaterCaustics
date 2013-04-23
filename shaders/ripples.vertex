@@ -1,0 +1,48 @@
+attribute vec4 vPosition;
+attribute vec2 vTexCoord;
+varying vec2 texCoord;
+
+void main(){
+	gl_Position = vPosition;
+	texCoord = vTexCoord;
+}
+
+fragment:
+
+precision highp float;
+varying vec2 texCoord;
+uniform sampler2D texture;        //the input texture
+uniform sampler2D currentTexture; //the destination texture
+uniform vec2 tapPos;
+uniform int tapped;
+uniform int flood;
+
+float kEPSILON = pow(2.0,-8.0);
+float kDamping = 1.0 - (10.0 * pow(2.0, -8.0));
+
+float kTexSize = 512.0;
+float kPixSize = 1.0 / kTexSize;
+
+vec3 unpackRG(float f) {
+  // F was generated using formula R + G * 256.0
+  // Where R and G lie in the range 0 - 1 with steps of 2**-8
+  vec3 colour = vec3(0.0);
+  // The blue channel signifies sign
+  colour.b = f < 0.0 ? 1.0 : 0.0;
+  f = abs(f);
+  colour.g = floor(f);
+  colour.r = (f - colour.g);
+  colour.g /= 256.0;
+  return colour;
+}
+
+float packColour(vec4 colour) {
+  if(colour.b != 0.0)
+  {
+    return -(colour.r + colour.g * 256.0);
+  }
+  else
+  {
+    return (colour.r + colour.g * 256.0);
+  }
+}

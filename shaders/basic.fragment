@@ -1,0 +1,9 @@
+uniform sampler2D texture; 
+uniform samplerCube cubemap; 
+
+void main()
+{
+    vec4 A = texture(cubemap,vec3(1.0));                
+    vec4 B = texture2D(texture, vec2(1.0));
+    gl_FragColor = B + A;
+}
