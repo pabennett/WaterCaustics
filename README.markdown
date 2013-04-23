@@ -36,7 +36,9 @@ This code has been written in Python 2.7 with the following additional modules:
 
 [Pyglet](http://www.pyglet.org/ "Pyglet") for OpenGL and windowing + controls
 
-[Gletools](http://codeflow.org/entries/2009/jul/31/gletools-advanced-pyglet-utilities/ "Gletools") to allow compilation of GLSL shaders
+Code from the
+[pyglet-shaders](https://code.google.com/p/pyglet-shaders/ "pyglet-shaders")
+project is used for compiling GLSL shaders.
 
 Features
 --------
@@ -108,3 +110,4 @@ Thanks to Keith Lantz for his [excellent guide](http://www.keithlantz.net/2011/1
 on Tessendorf's ocean simulation technique
 
 The sand and tile textures are by Patrick Hoesly on [Flickr](http://www.flickr.com/photos/zooboing/ "Zooboing") 
+The sky environment map "Miramar" is by Jockum "hipshot" Skoglund: [www.zfight.com](http://www.zfight.com "www.zfight.com")

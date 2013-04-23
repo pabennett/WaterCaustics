@@ -15,11 +15,6 @@ import sys, ConfigParser
 from pyglet import *
 from pyglet.gl import *
 from pyglet.window import key
-# gletools ShaderProgram is required to compile GLSL shaders, this can
-# be replaced with a standalone shader class if preferred
-# For example: 
-# http://swiftcoder.wordpress.com/2008/12/19/simple-glsl-wrapper-for-pyglet/
-from gletools import ShaderProgram
 from math import *
 # Renderers:
 from source import scene,camera,console
@@ -65,7 +60,7 @@ status.addParameter('FPS')
 status.addParameter('Position')
 status.addParameter('Velocity')               
                                            
-camera = camera.Camera(kScreenWidth, kScreenHeight, kVFOV, 0.1, 1000.)
+camera = camera.Camera(kScreenWidth, kScreenHeight, kVFOV, 0.1, 3000.)
 
 # Offset and orient the camera so that it is looking at the water.
 camera.setpos(100.0, 140.0, 150.0)

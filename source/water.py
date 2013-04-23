@@ -4,13 +4,15 @@ from caustics import Caustics
 
 from pyglet import *
 from pyglet.gl import *
-from gletools import ShaderProgram
 
 from vector import Vector2, Vector3
+
+import shader
 
 class Ocean():
     def __init__(   self,
                     camera,
+                    cubemap=None,
                     scale=1.0,
                     tileSize=128,
                     tilesX=1,
@@ -21,7 +23,13 @@ class Ocean():
                     period=10.0,
                     photonScale=4.0,
                     photonIntensity=2.0):
-    
+                    
+                    
+        if cubemap:
+            self.cubemapTexture = cubemap.texture
+        else:
+            self.cubemapTexture = None
+            
         self.wind = wind                    # Ocean wind in X,Z axis
         self.waveHeight = waveHeight        # The phillips spectrum parameter
         self.oceanDepth = depth
@@ -38,10 +46,12 @@ class Ocean():
         self.length = tileSize              # Ocean length parameter
         self.camera = camera
         self.scale = scale
-        
-        self.surfaceShader = ShaderProgram.open('shaders/ocean.shader')
-        self.groundShader = ShaderProgram.open('shaders/oceanfloor.shader')
-        
+
+        self.surfaceShader = shader.openfiles(  'shaders/ocean.vertex',
+                                                'shaders/ocean.fragment')
+        self.groundShader = shader.openfiles(   'shaders/oceanfloor.vertex',
+                                                'shaders/oceanfloor.fragment')
+
         self.oceanFloorTexture = image.load('images/tiles.png').get_texture() 
         
         
@@ -63,6 +73,7 @@ class Ocean():
                                 self.camera,
                                 texture=self.oceanFloorTexture,
                                 causticTexture=self.causticTexture,
+                                cubemapTexture=self.cubemapTexture,
                                 heightfield=self.heightfield,
                                 tileSize=self.tileSize, 
                                 tilesX=self.tilesX,
@@ -92,8 +103,32 @@ class Ocean():
                                 offset=Vector3(0.0,0.0,0.0))
                                 
     def reloadShaders(self):
-        self.surfaceShader = ShaderProgram.open('shaders/ocean.shader')
-        self.groundShader = ShaderProgram.open('shaders/oceanfloor.shader')
+        from shader import FragmentShader, ShaderError, ShaderProgram, VertexShader
+        
+        def read_source(fname):
+            f = open(fname)
+            try:
+                src = f.read()
+            finally:
+                f.close()
+            return src
+            
+        fsrc = read_source('shaders/ocean.fragment')
+        fshader = FragmentShader([fsrc])
+        vsrc = read_source('shaders/ocean.vertex')
+        vshader = VertexShader([vsrc])
+
+        self.surfaceShader = ShaderProgram(fshader, vshader)
+        self.surfaceShader.use()
+        
+        fsrc = read_source('shaders/oceanfloor.fragment')
+        fshader = FragmentShader([fsrc])
+        vsrc = read_source('shaders/oceanfloor.vertex')
+        vshader = VertexShader([vsrc])
+
+        self.groundShader = ShaderProgram(fshader, vshader)
+        self.groundShader.use()
+
         self.surface.setShader(self.surfaceShader)
         self.ground.setShader(self.groundShader)
         

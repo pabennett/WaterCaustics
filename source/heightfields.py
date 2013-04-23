@@ -1,3 +1,10 @@
+__author__ = "Peter Bennett"
+__copyright__ = "Copyright 2013, Peter A Bennett"
+__license__ = "LGPL"
+__maintainer__ = "Peter Bennett"
+__email__ = "pab850@gmail.com"
+__contact__ = "www.bytebash.com"
+
 from utilities import *
 
 from math import *
@@ -5,7 +12,6 @@ import numpy as np
 from vector import Vector2, Vector3
 
 from ctypes import pointer, sizeof
-from gletools import ShaderProgram
 
 class Tessendorf():
     def __init__(self, 
@@ -291,11 +297,12 @@ class Ripples():
        
         self.tapPosition = Vector2(0.0,0.0)
 
-       
-        self.rippleShader = ShaderProgram.open('shaders/ripples.shader')
-        self.copyShader = ShaderProgram.open('shaders/passthru.shader')
-        
- 
+        self.rippleShader = shader.openfiles(   'shaders/ripples.vertex',
+                                                'shaders/ripples.fragment')
+                                                
+        self.copyShader = shader.openfiles(   'shaders/passthru.vertex',
+                                                'shaders/passthru.fragment')
+                                        
         self.textureA = image.DepthTexture.create_for_size(GL_TEXTURE_2D, 
                                                         self.N, 
                                                         self.N,

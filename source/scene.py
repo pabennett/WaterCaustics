@@ -19,8 +19,9 @@ from pyglet.window import key, mouse
 import console
 import ctypes
 from vector import Vector2, Vector3
-
 from water import Ocean, Pool
+from skybox import Skybox
+import shader
        
 class Scene():
     def __init__(self, window, camera, statusConsole, options):
@@ -69,11 +70,35 @@ class Scene():
         self.causticIntensity= self.options.getfloat('Scene','causticintensity')
         self.causticPhotonScale = self.options.getfloat('Scene', 'causticscale')
         self.period = self.options.getfloat('Scene', 'period')
+        self.env_path = self.options.get('Scene', 'env_path')
         self.frame = 0
+        self.skyboxScale = 640.0
+        self.skyboxOffset = Vector3(0.0,0.0,0.0)
 
+        # Compile the shader
+        self.skyboxShader = shader.openfiles( 'shaders/skybox.vertex',
+                                        'shaders/skybox.fragment')
+        
+        
         # Renderables
         self.scene = []
+        
+        self.skybox = Skybox(
+                        self.skyboxShader,
+                        self.camera,
+                        self.skyboxScale,
+                        self.skyboxOffset,
+                        xpos_path=self.env_path + '/xpos.tga',
+                        ypos_path=self.env_path + '/ypos.tga',
+                        zpos_path=self.env_path + '/zpos.tga',
+                        xneg_path=self.env_path + '/xneg.tga',
+                        yneg_path=self.env_path + '/yneg.tga',
+                        zneg_path=self.env_path + '/zneg.tga',
+                    )
+        self.scene.append(self.skybox)
+                                
         self.ocean = Ocean( self.camera,
+                            cubemap=self.skybox,
                             depth=self.oceanDepth,
                             waveHeight=self.oceanWaveHeight,
                             wind=self.oceanWind,
@@ -83,9 +108,10 @@ class Scene():
                             photonScale=self.causticPhotonScale,
                             photonIntensity=self.causticIntensity,
                             period=self.period)
-                                                        
-        self.scene.append(self.ocean)
+                                     
+        self.scene.append(self.ocean)        
 
+        
     def statusUpdates(self, dt):
         '''
         Called periodically by main loop for onscreen text updates
@@ -103,7 +129,7 @@ class Scene():
         if self.isKeyPressed(key.C):
             self.oceanDepth += 1
             self.ocean.setDepth(self.oceanDepth)
-        elif self.isKeyPressed(key.V):
+        elif self.isKeyPressed(key.V) and self.oceanDepth > 0:
             self.oceanDepth -= 1
             self.ocean.setDepth(self.oceanDepth)
     

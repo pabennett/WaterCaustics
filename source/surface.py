@@ -16,6 +16,7 @@ class Surface():
                  camera,
                  texture=None,
                  causticTexture=None,
+                 cubemapTexture=None,
                  heightfield=None,
                  tileSize=64, 
                  tilesX=1,
@@ -33,6 +34,7 @@ class Surface():
         self.tileCount = Vector2(tilesX,tilesZ)
         self.texture = texture
         self.causticTexture = causticTexture
+        self.cubemapTexture = cubemapTexture
         # Set the shader and obtain references to shader uniforms/attributes
         self.setShader(shaderProgram)
         # Generate a 2D plane composed of tiled Quads
@@ -81,8 +83,8 @@ class Surface():
                                 vertexSize,
                                 0)
         # Normals
-        glEnableVertexAttribArray(self.tileSizeormalHandle) 
-        glVertexAttribPointer(  self.tileSizeormalHandle,
+        glEnableVertexAttribArray(self.normalHandle) 
+        glVertexAttribPointer(  self.normalHandle,
                                 3,
                                 GL_FLOAT,
                                 GL_FALSE,
@@ -121,13 +123,14 @@ class Surface():
         self.shader = shader     # The GLSL shader program handle
         # Set up GLSL uniform and attribute handles
         self.positionHandle = glGetAttribLocation(self.shader.id, "vPosition")
-        self.tileSizeormalHandle = glGetAttribLocation(self.shader.id, "vNormal")
+        self.normalHandle = glGetAttribLocation(self.shader.id, "vNormal")
         self.texCoordHandle = glGetAttribLocation(self.shader.id, "vTexCoord")
         self.modelMatrixHandle = glGetUniformLocation(self.shader.id, "model")
         self.viewMatrixHandle = glGetUniformLocation(self.shader.id, "view")
         self.projMatrixHandle = glGetUniformLocation(self.shader.id, "projection")
         self.textureHandle = glGetUniformLocation(self.shader.id, "texture")
-        self.causticTextureHandle = glGetUniformLocation(self.shader.id, "caustics")      
+        self.causticTextureHandle = glGetUniformLocation(self.shader.id, "caustics")   
+        self.cubemapTextureHandle = glGetUniformLocation(self.shader.id, "cubemap")
         self.eyeHandle = glGetUniformLocation(self.shader.id, "eye")  
         self.eyePositionHandle = glGetUniformLocation(self.shader.id, "eyePosition")  
         
@@ -198,6 +201,11 @@ class Surface():
             glActiveTexture(GL_TEXTURE1)
             glBindTexture(GL_TEXTURE_2D, self.causticTexture.id)
             glUniform1i(self.causticTextureHandle, 1)
+            
+        if self.cubemapTexture:
+            glActiveTexture(GL_TEXTURE2)
+            glBindTexture(GL_TEXTURE_CUBE_MAP, self.cubemapTexture)
+            glUniform1i(self.cubemapTextureHandle, 2)
          
         glBindVertexArray(self.VAO)
         
@@ -219,8 +227,9 @@ class Surface():
                                     self.modelMatrix.elements)
                 glDrawElements(GL_TRIANGLES,self.vertexCount,GL_UNSIGNED_INT, 0)        
 
-        glBindTexture(GL_TEXTURE_2D, 0)      
-        glActiveTexture(GL_TEXTURE0)      
+        glBindTexture(GL_TEXTURE_2D, 0)        
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)   
+        glActiveTexture(GL_TEXTURE0)   
         glBindVertexArray(0)
         glUseProgram(0)
         glDisable(GL_BLEND)

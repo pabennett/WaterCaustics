@@ -1,6 +1,6 @@
 from pyglet import *
 from pyglet.gl import *
-from gletools import ShaderProgram
+
 
 from vector import Vector2, Vector3
 from matrix16 import Matrix16
@@ -8,10 +8,9 @@ from matrix16 import Matrix16
 from utilities import frameBuffer, Pointfield2D, Mesh2DSurface
 
 import numpy as np
-
 import ctypes
-
 import random
+import shader
 
 class Caustics():
     def __init__(self,
@@ -31,7 +30,8 @@ class Caustics():
         self.tileSize = self.surface.tileSize
         
         # Compile the shader
-        self.shader = ShaderProgram.open('shaders/photonMap.shader')
+        self.shader = shader.openfiles( 'shaders/photonmap.vertex',
+                                        'shaders/photonmap.fragment')
         
         self.causticTexture = causticTexture     
         
