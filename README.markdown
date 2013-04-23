@@ -110,4 +110,5 @@ Thanks to Keith Lantz for his [excellent guide](http://www.keithlantz.net/2011/1
 on Tessendorf's ocean simulation technique
 
 The sand and tile textures are by Patrick Hoesly on [Flickr](http://www.flickr.com/photos/zooboing/ "Zooboing") 
+
 The sky environment map "Miramar" is by Jockum "hipshot" Skoglund: [www.zfight.com](http://www.zfight.com "www.zfight.com")
